@@ -1,0 +1,10 @@
+syntax = "proto3";
+package testproto;
+
+message DummyRequest {
+  string ping = 1;
+}
+
+message DummyResponse {
+  string pong = 1;
+}
