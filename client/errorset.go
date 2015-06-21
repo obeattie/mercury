@@ -115,7 +115,7 @@ func (es ErrorSet) sanitiseContext(ctx map[string]string) {
 // Combined returns a combined error from the set. If there is only one error, it is returned unmolested. If there are
 // more, they are all "flattened" into a single error. Where codes differ, they are normalised to that with the lowest
 // index.
-func (es ErrorSet) Combined() *terrors.Error {
+func (es ErrorSet) Combined() error {
 	switch len(es) {
 	case 0:
 		return nil
