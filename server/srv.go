@@ -205,7 +205,7 @@ func (s *server) handle(trans transport.Transport, req_ tmsg.Request) {
 	ep, ok := s.Endpoint(req.Endpoint())
 	if !ok {
 		log.Warnf("[Mercury:Server] Received request %s for unknown endpoint %s", req.Id(), req.Endpoint())
-		if rsp := s.endpointNotFoundresponse(req); rsp != nil {
+		if rsp := s.endpointNotFoundResponse(req); rsp != nil {
 			rsp = s.applyResponseMiddleware(rsp, req)
 			trans.Respond(req, rsp)
 		}
@@ -243,7 +243,7 @@ func (s *server) AddMiddleware(mw ServerMiddleware) {
 	s.middleware = append(s.middleware, mw)
 }
 
-func (s *server) endpointNotFoundresponse(req mercury.Request) mercury.Response {
+func (s *server) endpointNotFoundResponse(req mercury.Request) mercury.Response {
 	err := terrors.BadRequest("Endpoint not found")
 	rsp := req.Response(terrors.Marshal(err))
 	if rsp != nil {
