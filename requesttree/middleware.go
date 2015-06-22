@@ -4,8 +4,6 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/obeattie/mercury"
-	"github.com/obeattie/mercury/client"
-	"github.com/obeattie/mercury/server"
 )
 
 const (
@@ -13,16 +11,9 @@ const (
 	reqIdCtxKey    = "Request-ID"
 )
 
-var sharedMiddleware = &rtm{}
+type requestTreeMiddleware struct{}
 
-type ParentRequestIdMiddleware interface {
-	server.ServerMiddleware
-	client.ClientMiddleware
-}
-
-type rtm struct{}
-
-func (m *rtm) ProcessClientRequest(req mercury.Request) mercury.Request {
+func (m requestTreeMiddleware) ProcessClientRequest(req mercury.Request) mercury.Request {
 	if req.Headers()[parentIdHeader] == "" { // Don't overwrite an exiting header
 		if parentId, ok := req.Context().Value(reqIdCtxKey).(string); ok && parentId != "" {
 			req.SetHeader(parentIdHeader, parentId)
@@ -31,11 +22,11 @@ func (m *rtm) ProcessClientRequest(req mercury.Request) mercury.Request {
 	return req
 }
 
-func (m *rtm) ProcessClientResponse(rsp mercury.Response, ctx context.Context) mercury.Response {
+func (m requestTreeMiddleware) ProcessClientResponse(rsp mercury.Response, ctx context.Context) mercury.Response {
 	return rsp
 }
 
-func (m *rtm) ProcessServerRequest(req mercury.Request) mercury.Request {
+func (m requestTreeMiddleware) ProcessServerRequest(req mercury.Request) mercury.Request {
 	req.SetContext(context.WithValue(req.Context(), reqIdCtxKey, req.Id()))
 	if v := req.Headers()[parentIdHeader]; v != "" {
 		req.SetContext(context.WithValue(req.Context(), parentIdCtxKey, v))
@@ -43,13 +34,13 @@ func (m *rtm) ProcessServerRequest(req mercury.Request) mercury.Request {
 	return req
 }
 
-func (m *rtm) ProcessServerResponse(rsp mercury.Response, ctx context.Context) mercury.Response {
+func (m requestTreeMiddleware) ProcessServerResponse(rsp mercury.Response, ctx context.Context) mercury.Response {
 	if v, ok := ctx.Value(parentIdCtxKey).(string); ok && v != "" {
 		rsp.SetHeader(parentIdHeader, v)
 	}
 	return rsp
 }
 
-func Middleware() ParentRequestIdMiddleware {
-	return sharedMiddleware
+func Middleware() requestTreeMiddleware {
+	return requestTreeMiddleware{}
 }
