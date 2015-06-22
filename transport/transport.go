@@ -3,7 +3,7 @@ package transport
 import (
 	"sync"
 
-	"github.com/obeattie/typhon/rabbit"
+	"github.com/obeattie/typhon/mock"
 	ttrans "github.com/obeattie/typhon/transport"
 )
 
@@ -15,7 +15,7 @@ var (
 )
 
 func init() {
-	SetDefaultTransport(rabbit.NewTransport())
+	SetDefaultTransport(mock.NewTransport())
 }
 
 // DefaultTransport returns the global default transport, over which servers and clients should run by default
