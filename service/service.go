@@ -48,7 +48,7 @@ func DefaultServerMiddleware() []server.ServerMiddleware {
 		requesttree.Middleware()}
 }
 
-// DefaultClientMiddleware returns the complement of client middleware provided by Mercuty
+// DefaultClientMiddleware returns the complement of client middleware provided by Mercury
 func DefaultClientMiddleware() []client.ClientMiddleware {
 	return []client.ClientMiddleware{
 		requesttree.Middleware()}
