@@ -20,10 +20,11 @@ const (
 )
 
 var (
-	ErrAlreadyRunning  error = terrors.InternalService("Server is already running")
-	ErrTransportClosed error = terrors.InternalService("Transport closed")
-	defaultMiddleware  []ServerMiddleware
-	defaultMiddlewareM sync.RWMutex
+	ErrAlreadyRunning   error = terrors.InternalService("Server is already running")
+	ErrTransportClosed  error = terrors.InternalService("Transport closed")
+	errEndpointNotFound       = terrors.BadRequest("Endpoint not found")
+	defaultMiddleware   []ServerMiddleware
+	defaultMiddlewareM  sync.RWMutex
 )
 
 func NewServer(name string) Server {
@@ -177,14 +178,18 @@ func (s *server) Stop() {
 	}
 }
 
-func (s *server) applyRequestMiddleware(req mercury.Request) mercury.Request {
+func (s *server) applyRequestMiddleware(req mercury.Request) (mercury.Request, mercury.Response) {
 	s.middlewareM.RLock()
 	mws := s.middleware
 	s.middlewareM.RUnlock()
 	for _, mw := range mws {
-		req = mw.ProcessServerRequest(req)
+		if req_, rsp := mw.ProcessServerRequest(req); rsp != nil {
+			return req_, rsp
+		} else {
+			req = req_
+		}
 	}
-	return req
+	return req, nil
 }
 
 func (s *server) applyResponseMiddleware(rsp mercury.Response, ctx context.Context) mercury.Response {
@@ -200,22 +205,27 @@ func (s *server) applyResponseMiddleware(rsp mercury.Response, ctx context.Conte
 
 func (s *server) handle(trans transport.Transport, req_ tmsg.Request) {
 	req := mercury.FromTyphonRequest(req_)
-	req = s.applyRequestMiddleware(req)
+	req, rsp := s.applyRequestMiddleware(req)
 
-	ep, ok := s.Endpoint(req.Endpoint())
-	if !ok {
-		log.Warnf("[Mercury:Server] Received request %s for unknown endpoint %s", req.Id(), req.Endpoint())
-		if rsp := s.endpointNotFoundResponse(req); rsp != nil {
-			rsp = s.applyResponseMiddleware(rsp, req)
-			trans.Respond(req, rsp)
+	if rsp == nil {
+		if ep, ok := s.Endpoint(req.Endpoint()); !ok {
+			log.Warnf("[Mercury:Server] Received request %s for unknown endpoint %s", req.Id(), req.Endpoint())
+			rsp = ErrorResponse(req, errEndpointNotFound)
+		} else {
+			if rsp_, err := ep.Handle(req); err != nil {
+				log.Debugf("[Mercury:Server] Got error from endpoint %s for request %s: %v", ep.Name, req.Id(), err)
+				rsp = ErrorResponse(req, err)
+			} else if rsp_ == nil {
+				log.Warnf("[Mercury:Server] Got nil response from endpoint %s for request %s", ep.Name, req.Id())
+				rsp = req.Response(nil)
+			} else {
+				rsp = rsp_
+			}
 		}
-		return
 	}
 
-	if rsp := ep.Handle(req); rsp == nil {
-		log.Warnf("[Mercury:Server] Got nil response from endpoint %s for request %s", ep.Name, req.Id())
-	} else {
-		rsp = s.applyResponseMiddleware(rsp, req)
+	rsp = s.applyResponseMiddleware(rsp, req)
+	if rsp != nil {
 		trans.Respond(req, rsp)
 	}
 }
@@ -243,9 +253,10 @@ func (s *server) AddMiddleware(mw ServerMiddleware) {
 	s.middleware = append(s.middleware, mw)
 }
 
-func (s *server) endpointNotFoundResponse(req mercury.Request) mercury.Response {
-	err := terrors.BadRequest("Endpoint not found")
-	rsp := req.Response(terrors.Marshal(err))
+// ErrorResponse constructs a response for the given request, with the given error as its contents. Mercury clients
+// know how to unmarshal these errors.
+func ErrorResponse(req mercury.Request, err error) mercury.Response {
+	rsp := req.Response(terrors.Marshal(terrors.Wrap(err)))
 	if rsp != nil {
 		rsp.SetIsError(true)
 	}

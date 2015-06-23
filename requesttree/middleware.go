@@ -26,16 +26,16 @@ func (m requestTreeMiddleware) ProcessClientResponse(rsp mercury.Response, ctx c
 	return rsp
 }
 
-func (m requestTreeMiddleware) ProcessServerRequest(req mercury.Request) mercury.Request {
+func (m requestTreeMiddleware) ProcessServerRequest(req mercury.Request) (mercury.Request, mercury.Response) {
 	req.SetContext(context.WithValue(req.Context(), reqIdCtxKey, req.Id()))
 	if v := req.Headers()[parentIdHeader]; v != "" {
 		req.SetContext(context.WithValue(req.Context(), parentIdCtxKey, v))
 	}
-	return req
+	return req, nil
 }
 
 func (m requestTreeMiddleware) ProcessServerResponse(rsp mercury.Response, ctx context.Context) mercury.Response {
-	if v, ok := ctx.Value(parentIdCtxKey).(string); ok && v != "" {
+	if v, ok := ctx.Value(parentIdCtxKey).(string); ok && v != "" && rsp != nil {
 		rsp.SetHeader(parentIdHeader, v)
 	}
 	return rsp

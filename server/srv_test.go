@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/obeattie/mercury"
@@ -110,10 +111,59 @@ func (suite *serverSuite) TestRouting() {
 
 // TestErrorResponse tests that errors are serialised and returned to callers appropriately (as we are using the
 // transport directly here, we actually get a response containing an error, not a transport error)
-func (suite *serverSuite) TestErrorResponse() {}
+func (suite *serverSuite) TestErrorResponse() {
+	srv := suite.server
+	srv.AddEndpoints(Endpoint{
+		Name:     "err",
+		Request:  new(testproto.DummyRequest),
+		Response: new(testproto.DummyResponse),
+		Handler: func(req mercury.Request) (mercury.Response, error) {
+			request := req.Body().(*testproto.DummyRequest)
+			return nil, terrors.NotFound(request.Ping)
+		}})
 
-// TestNilResponse tests that a nil response correctly returns a Response with a nil body to the caller
-func (suite *serverSuite) TestNilResponse() {}
+	req := mercury.NewRequest()
+	req.SetService(testServiceName)
+	req.SetEndpoint("err")
+	req.SetBody(&testproto.DummyRequest{
+		Ping: "Foo bar baz"})
+	suite.Assert().NoError(tmsg.ProtoMarshaler().MarshalBody(req))
+
+	rsp_, err := suite.trans.Send(req, time.Second)
+	suite.Assert().NoError(err)
+	suite.Assert().NotNil(rsp_)
+	rsp := mercury.FromTyphonResponse(rsp_)
+	suite.Assert().True(rsp.IsError())
+
+	errResponse := &pe.Error{}
+	suite.Assert().NoError(proto.Unmarshal(rsp.Payload(), errResponse))
+	terr := terrors.Unmarshal(errResponse)
+	suite.Assert().Equal("Foo bar baz", terr.Message, string(rsp.Payload()))
+	suite.Assert().Equal(terrors.ErrNotFound, terr.Code)
+}
+
+// TestNilResponse tests that a nil response correctly returns a Response with an empty payload to the caller
+func (suite *serverSuite) TestNilResponse() {
+	srv := suite.server
+	srv.AddEndpoints(Endpoint{
+		Name:     "nil",
+		Request:  new(testproto.DummyRequest),
+		Response: new(testproto.DummyResponse),
+		Handler: func(req mercury.Request) (mercury.Response, error) {
+			return nil, nil
+		}})
+
+	req := mercury.NewRequest()
+	req.SetService(testServiceName)
+	req.SetBody(&testproto.DummyRequest{})
+	suite.Assert().NoError(tmsg.ProtoMarshaler().MarshalBody(req))
+	req.SetEndpoint("nil")
+
+	rsp, err := suite.trans.Send(req, time.Second)
+	suite.Assert().NoError(err)
+	suite.Assert().NotNil(rsp)
+	suite.Assert().Len(rsp.Payload(), 0)
+}
 
 // TestEndpointNotFound tests that a Bad Request error is correctly returned on receiving an event for an unknown
 // endpoing

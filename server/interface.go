@@ -40,6 +40,18 @@ type Server interface {
 }
 
 type ServerMiddleware interface {
-	ProcessServerRequest(req mercury.Request) mercury.Request
+	// ProcessServerRequest is called on each inbound request, before it is routed to an Endpoint. If a response or an
+	// error is returned, Mercury does not bother calling any other request middleware. It will apply response
+	// middleware and respond to the caller with the result.
+	//
+	// If an error is to be returned, use `ErrorResponse`.
+	ProcessServerRequest(req mercury.Request) (mercury.Request, mercury.Response)
+	// ProcessServerResponse is called on all responses before they are returned to a caller. Unlike request middleware,
+	// response middleware is always called. If an error is returned, it will be marshaled to a response and will
+	// continue to other response middleware.
+	//
+	// Nil responses MUST be handled. If an error is to be returned, use `ErrorResponse`.
+	//
+	// Note that response middleware is applied in reverse order.
 	ProcessServerResponse(rsp mercury.Response, ctx context.Context) mercury.Response
 }
