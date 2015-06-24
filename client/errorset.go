@@ -84,7 +84,7 @@ func (es ErrorSet) IgnoreService(services ...string) ErrorSet {
 	result := make(ErrorSet, 0, len(es)-len(services))
 	for _, err := range es {
 		if _, excluded := servicesMap[err.PrivateContext[errServiceField]]; !excluded {
-			result = append(result)
+			result = append(result, err)
 		}
 	}
 	return result
@@ -99,7 +99,7 @@ func (es ErrorSet) IgnoreUid(uids ...string) ErrorSet {
 	result := make(ErrorSet, 0, len(es)-len(uids))
 	for _, err := range es {
 		if _, excluded := uidsMap[err.PrivateContext[errUidField]]; !excluded {
-			result = append(result)
+			result = append(result, err)
 		}
 	}
 	return result
