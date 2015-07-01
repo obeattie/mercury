@@ -8,11 +8,11 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/golang/protobuf/proto"
 
-	"github.com/obeattie/mercury"
-	"github.com/obeattie/mercury/transport"
-	terrors "github.com/obeattie/typhon/errors"
-	tmsg "github.com/obeattie/typhon/message"
-	tperrors "github.com/obeattie/typhon/proto/error"
+	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/transport"
+	terrors "github.com/mondough/typhon/errors"
+	tmsg "github.com/mondough/typhon/message"
+	tperrors "github.com/mondough/typhon/proto/error"
 )
 
 const defaultTimeout = 10 * time.Second

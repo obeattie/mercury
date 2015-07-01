@@ -8,7 +8,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 
-	tmsg "github.com/obeattie/typhon/message"
+	tmsg "github.com/mondough/typhon/message"
 )
 
 const (

@@ -1,7 +1,7 @@
 package mercury
 
 import (
-	tmsg "github.com/obeattie/typhon/message"
+	tmsg "github.com/mondough/typhon/message"
 )
 
 type Message tmsg.Message

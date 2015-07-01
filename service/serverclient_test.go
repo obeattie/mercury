@@ -7,14 +7,14 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/obeattie/mercury"
-	"github.com/obeattie/mercury/client"
-	"github.com/obeattie/mercury/server"
-	"github.com/obeattie/mercury/testproto"
-	"github.com/obeattie/mercury/transport"
-	terrors "github.com/obeattie/typhon/errors"
-	"github.com/obeattie/typhon/mock"
-	"github.com/obeattie/typhon/rabbit"
+	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/client"
+	"github.com/mondough/mercury/server"
+	"github.com/mondough/mercury/testproto"
+	"github.com/mondough/mercury/transport"
+	terrors "github.com/mondough/typhon/errors"
+	"github.com/mondough/typhon/mock"
+	"github.com/mondough/typhon/rabbit"
 )
 
 const testServiceName = "service.client-server-example"

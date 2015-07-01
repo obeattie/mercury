@@ -8,11 +8,11 @@ import (
 	"golang.org/x/net/context"
 	"gopkg.in/tomb.v2"
 
-	"github.com/obeattie/mercury"
-	"github.com/obeattie/mercury/transport"
-	terrors "github.com/obeattie/typhon/errors"
-	tmsg "github.com/obeattie/typhon/message"
-	ttrans "github.com/obeattie/typhon/transport"
+	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/transport"
+	terrors "github.com/mondough/typhon/errors"
+	tmsg "github.com/mondough/typhon/message"
+	ttrans "github.com/mondough/typhon/transport"
 )
 
 const (

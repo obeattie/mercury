@@ -3,7 +3,7 @@ package requesttree
 import (
 	"golang.org/x/net/context"
 
-	"github.com/obeattie/mercury"
+	"github.com/mondough/mercury"
 )
 
 const (

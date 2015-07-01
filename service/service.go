@@ -3,10 +3,10 @@ package service
 import (
 	"sync"
 
-	"github.com/obeattie/mercury/client"
-	"github.com/obeattie/mercury/requesttree"
-	"github.com/obeattie/mercury/server"
-	"github.com/obeattie/mercury/transport"
+	"github.com/mondough/mercury/client"
+	"github.com/mondough/mercury/requesttree"
+	"github.com/mondough/mercury/server"
+	"github.com/mondough/mercury/transport"
 )
 
 var (

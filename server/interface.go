@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/obeattie/mercury"
-	"github.com/obeattie/mercury/transport"
+	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/transport"
 	"golang.org/x/net/context"
 )
 

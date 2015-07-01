@@ -3,9 +3,9 @@ package server
 import (
 	"github.com/golang/protobuf/proto"
 
-	"github.com/obeattie/mercury"
-	terrors "github.com/obeattie/typhon/errors"
-	tmsg "github.com/obeattie/typhon/message"
+	"github.com/mondough/mercury"
+	terrors "github.com/mondough/typhon/errors"
+	tmsg "github.com/mondough/typhon/message"
 )
 
 type Handler func(req mercury.Request) (mercury.Response, error)

@@ -5,12 +5,12 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/obeattie/mercury"
-	"github.com/obeattie/mercury/client"
-	"github.com/obeattie/mercury/server"
-	"github.com/obeattie/mercury/testproto"
-	"github.com/obeattie/mercury/transport"
-	"github.com/obeattie/typhon/mock"
+	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/client"
+	"github.com/mondough/mercury/server"
+	"github.com/mondough/mercury/testproto"
+	"github.com/mondough/mercury/transport"
+	"github.com/mondough/typhon/mock"
 )
 
 const testServiceName = "service.requesttree-example"
