@@ -4,6 +4,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/obeattie/mercury"
+	terrors "github.com/obeattie/typhon/errors"
 )
 
 const (
@@ -25,6 +26,8 @@ func (m requestTreeMiddleware) ProcessClientRequest(req mercury.Request) mercury
 func (m requestTreeMiddleware) ProcessClientResponse(rsp mercury.Response, ctx context.Context) mercury.Response {
 	return rsp
 }
+
+func (m requestTreeMiddleware) ProcessClientError(err *terrors.Error, ctx context.Context) {}
 
 func (m requestTreeMiddleware) ProcessServerRequest(req mercury.Request) (mercury.Request, mercury.Response) {
 	req.SetContext(context.WithValue(req.Context(), reqIdCtxKey, req.Id()))
