@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/net/context"
 
 	"github.com/mondough/mercury"
 	"github.com/mondough/mercury/testproto"
@@ -66,9 +67,16 @@ func (suite *clientSuite) SetupSuite() {
 					rsp.SetPayload([]byte("†HÎß ßHøÜ¬∂ÑT ∑ø®K"))
 					suite.Require().NoError(trans.Respond(req, rsp))
 
+				case "error":
+					err := terrors.BadRequest("foo bar")
+					rsp := req.Response(terrors.Marshal(err))
+					rsp.SetHeaders(req.Headers())
+					suite.Require().NoError(trans.Respond(req, rsp))
+
 				default:
 					rsp := req.Response(&testproto.DummyResponse{
 						Pong: "Pong"})
+					rsp.SetHeaders(req.Headers())
 					suite.Require().NoError(tmsg.ProtoMarshaler().MarshalBody(rsp))
 					suite.Require().NoError(trans.Respond(req, rsp))
 				}
@@ -100,7 +108,7 @@ func (suite *clientSuite) TestExecuting() {
 	rsp := client.Response("call1")
 
 	suite.Assert().Empty(client.Errors())
-	suite.Assert().NotNil(rsp)
+	suite.Require().NotNil(rsp)
 	suite.Assert().Equal("Pong", response.Pong)
 	suite.Assert().Equal(response, rsp.Body())
 	suite.Assert().Equal("Pong", rsp.Body().(*testproto.DummyResponse).Pong)
@@ -150,7 +158,76 @@ func (suite *clientSuite) TestResponseUnmarshalingError() {
 	suite.Assert().Equal(terrors.ErrBadResponse, err.Code)
 
 	rsp := client.Response("call1")
-	suite.Assert().NotNil(rsp)
+	suite.Require().NotNil(rsp)
 	response := rsp.Body().(*testproto.DummyResponse)
 	suite.Assert().Equal("", response.Pong)
+}
+
+type testMw struct {
+	err *terrors.Error
+}
+
+func (m *testMw) ProcessClientRequest(req mercury.Request) mercury.Request {
+	req.SetHeader("X-Foo", "X-Bar")
+	return req
+}
+
+func (m *testMw) ProcessClientResponse(rsp mercury.Response, ctx context.Context) mercury.Response {
+	rsp.SetHeader("X-Boop", "Boop")
+	return rsp
+}
+
+func (m *testMw) ProcessClientError(err *terrors.Error, ctx context.Context) {
+	m.err = err
+}
+
+// TestMiddleware verifies client middleware methods are executed as expected
+func (suite *clientSuite) TestMiddleware() {
+	mw := &testMw{}
+	client := NewClient().
+		AddMiddleware(mw).
+		Add(
+		Call{
+			Uid:      "call1",
+			Service:  testServiceName,
+			Endpoint: "ping",
+			Response: new(testproto.DummyResponse),
+		}).
+		SetTimeout(time.Second).
+		SetTransport(suite.trans).
+		Execute()
+
+	suite.Assert().Empty(client.Errors())
+	rsp := client.Response("call1")
+	suite.Require().NotNil(rsp)
+	// ProcessClientRequest should have set X-Foo: Bar (and ping echoes the headers)
+	suite.Assert().Equal("X-Bar", rsp.Headers()["X-Foo"])
+	// ProcessClientResponse should have set X-Boop: Boop
+	suite.Assert().Equal("Boop", rsp.Headers()["X-Boop"])
+	suite.Assert().Nil(mw.err)
+
+	client = NewClient().
+		AddMiddleware(mw).
+		Add(
+		Call{
+			Uid:      "call1",
+			Service:  testServiceName,
+			Endpoint: "error",
+			Response: new(testproto.DummyResponse),
+		}).
+		SetTimeout(time.Second).
+		SetTransport(suite.trans).
+		Execute()
+
+	rsp = client.Response("call1")
+	suite.Require().NotNil(rsp)
+	suite.Assert().Len(client.Errors(), 1)
+	err := client.Errors().ForUid("call1")
+	suite.Require().Error(err)
+	// ProcessClientError should have stored the error
+	suite.Assert().Equal(err, mw.err)
+	// ProcessClientRequest should have set X-Foo: Bar (and ping echoes the headers)
+	suite.Assert().Equal("X-Bar", rsp.Headers()["X-Foo"])
+	// ProcessClientResponse should not have run
+	suite.Assert().Empty(rsp.Headers()["X-Boop"])
 }

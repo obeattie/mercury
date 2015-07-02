@@ -171,13 +171,19 @@ func (c *client) performCall(call clientCall, middleware []ClientMiddleware, tra
 			}
 		}
 
-		// Apply response middleware (in reverse order)
-		for i := len(middleware) - 1; i >= 0; i-- {
-			mw := middleware[i]
-			rsp = mw.ProcessClientResponse(rsp, call.req)
-		}
 		call.rsp = rsp
 	}
+
+	// Apply response/error middleware (in reverse order)
+	for i := len(middleware) - 1; i >= 0; i-- {
+		mw := middleware[i]
+		if call.err != nil {
+			mw.ProcessClientError(call.err, call.req)
+		} else {
+			call.rsp = mw.ProcessClientResponse(call.rsp, call.req)
+		}
+	}
+
 	completion <- call
 }
 

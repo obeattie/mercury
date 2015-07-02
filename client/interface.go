@@ -5,6 +5,7 @@ import (
 
 	"github.com/mondough/mercury"
 	"github.com/mondough/mercury/transport"
+	terrors "github.com/mondough/typhon/errors"
 	"golang.org/x/net/context"
 )
 
@@ -50,6 +51,17 @@ type Client interface {
 }
 
 type ClientMiddleware interface {
+	// ProcessClientRequest is called on every outbound request, before it is sent to a transport.
+	//
+	// The middleware may mutate the request, or by returning nil, prevent the request from being sent entirely.
 	ProcessClientRequest(req mercury.Request) mercury.Request
+	// ProcessClientResponse is called on responses before they are available to the caller. If a call fails, or
+	// returns an error, ProcessClientError is invoked instead of this method for that request.
+	//
+	// Note that response middleware are applied in reverse order.
 	ProcessClientResponse(rsp mercury.Response, ctx context.Context) mercury.Response
+	// ProcessClientError is called whenever a remote call results in an error (either local or remote).
+	//
+	// Note that error middleware are applied in reverse order.
+	ProcessClientError(err *terrors.Error, ctx context.Context)
 }

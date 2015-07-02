@@ -52,6 +52,6 @@ type ServerMiddleware interface {
 	//
 	// Nil responses MUST be handled. If an error is to be returned, use `ErrorResponse`.
 	//
-	// Note that response middleware is applied in reverse order.
+	// Note that response middleware are applied in reverse order.
 	ProcessServerResponse(rsp mercury.Response, ctx context.Context) mercury.Response
 }
