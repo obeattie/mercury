@@ -3,8 +3,8 @@ package transport
 import (
 	"sync"
 
-	"github.com/obeattie/typhon/mock"
-	ttrans "github.com/obeattie/typhon/transport"
+	"github.com/mondough/typhon/mock"
+	ttrans "github.com/mondough/typhon/transport"
 )
 
 type Transport ttrans.Transport

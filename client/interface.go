@@ -3,9 +3,9 @@ package client
 import (
 	"time"
 
+	terrors "github.com/mondough/typhon/errors"
 	"github.com/obeattie/mercury"
 	"github.com/obeattie/mercury/transport"
-	terrors "github.com/obeattie/typhon/errors"
 	"golang.org/x/net/context"
 )
 

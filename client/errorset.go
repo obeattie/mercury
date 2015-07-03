@@ -3,7 +3,7 @@ package client
 import (
 	"fmt"
 
-	terrors "github.com/obeattie/typhon/errors"
+	terrors "github.com/mondough/typhon/errors"
 )
 
 const (

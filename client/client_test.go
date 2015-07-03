@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 
+	terrors "github.com/mondough/typhon/errors"
+	tmsg "github.com/mondough/typhon/message"
+	"github.com/mondough/typhon/mock"
+	"github.com/mondough/typhon/rabbit"
 	"github.com/obeattie/mercury"
 	"github.com/obeattie/mercury/testproto"
 	"github.com/obeattie/mercury/transport"
-	terrors "github.com/obeattie/typhon/errors"
-	tmsg "github.com/obeattie/typhon/message"
-	"github.com/obeattie/typhon/mock"
-	"github.com/obeattie/typhon/rabbit"
 )
 
 const testServiceName = "service.client-example"

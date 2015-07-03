@@ -4,9 +4,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 
+	terrors "github.com/mondough/typhon/errors"
+	tmsg "github.com/mondough/typhon/message"
 	"github.com/obeattie/mercury"
-	terrors "github.com/obeattie/typhon/errors"
-	tmsg "github.com/obeattie/typhon/message"
 )
 
 // A Call is a convenient way to form a protobuf Request for an RPC call.

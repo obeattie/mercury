@@ -3,8 +3,8 @@ package requesttree
 import (
 	"golang.org/x/net/context"
 
+	terrors "github.com/mondough/typhon/errors"
 	"github.com/obeattie/mercury"
-	terrors "github.com/obeattie/typhon/errors"
 )
 
 const (

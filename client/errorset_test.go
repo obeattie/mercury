@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	terrors "github.com/obeattie/typhon/errors"
+	terrors "github.com/mondough/typhon/errors"
 )
 
 func TestErrorSetSuite(t *testing.T) {
