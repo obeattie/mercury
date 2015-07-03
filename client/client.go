@@ -145,11 +145,13 @@ func (c *client) performCall(call clientCall, middleware []ClientMiddleware, tra
 		// Servers set header Content-Error: 1 when sending errors. For those requests, unmarshal the error, leaving the
 		// call's response nil
 		if rsp.IsError() {
-			err := new(tperrors.Error)
-			if unmarshalErr := proto.Unmarshal(rsp.Payload(), err); unmarshalErr != nil {
+			errRsp := rsp.Copy()
+			unmarshaler := tmsg.ProtoUnmarshaler(&tperrors.Error{})
+			if unmarshalErr := unmarshaler.UnmarshalPayload(errRsp); unmarshalErr != nil {
 				call.err = terrors.Wrap(unmarshalErr)
 				call.err.Code = terrors.ErrBadResponse
 			} else {
+				err := errRsp.Body().(*tperrors.Error)
 				call.err = terrors.Unmarshal(err)
 			}
 
