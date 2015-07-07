@@ -214,6 +214,9 @@ func (s *server) handle(trans transport.Transport, req_ tmsg.Request) {
 		} else {
 			if rsp_, err := ep.Handle(req); err != nil {
 				log.Debugf("[Mercury:Server] Got error from endpoint %s for request %s: %v", ep.Name, req.Id(), err)
+				// @todo happy to remove this verbose logging once we have tracing... For now it will allow us to debug things
+				log.Debugf("[Mercury:Server] Full request: %+v", req.Body())
+				log.Debugf("[Mercury:Server] Full error: %+v", ErrorResponse(req, err).Body())
 				rsp = ErrorResponse(req, err)
 			} else if rsp_ == nil {
 				log.Warnf("[Mercury:Server] Got nil response from endpoint %s for request %s", ep.Name, req.Id())
