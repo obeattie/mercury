@@ -6,7 +6,7 @@ import (
 
 const parentIdCtxKey = parentIdHeader
 
-// SessionFor returns the parent request ID for the provided context (if any).
+// ParentRequestIdFor returns the parent request ID for the provided context (if any).
 func ParentRequestIdFor(ctx context.Context) string {
 	switch v := ctx.Value(parentIdCtxKey).(type) {
 	case string:
