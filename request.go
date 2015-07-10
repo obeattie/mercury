@@ -9,14 +9,11 @@ import (
 	"golang.org/x/net/context"
 
 	tmsg "github.com/mondough/typhon/message"
+	"github.com/obeattie/mercury/marshaling"
 )
 
 const (
-	errHeader         = "Content-Error"
-	ContentTypeHeader = "Content-Type"
-	acceptHeader      = "Accept"
-	ProtoContentType  = tmsg.ProtoContentType
-	JSONContentType   = tmsg.JSONContentType
+	errHeader = "Content-Error"
 )
 
 // A Request is a representation of an RPC call (inbound or outbound). It extends Typhon's Request to provide a
@@ -41,16 +38,16 @@ func responseFromRequest(req Request, body proto.Message) Response {
 	rsp.SetEndpoint(req.Endpoint())
 	if body != nil {
 		rsp.SetBody(body)
-		var err error
-		switch req.Headers()[acceptHeader] {
-		case JSONContentType:
-			err = tmsg.JSONMarshaler().MarshalBody(rsp)
-		default:
-			err = tmsg.ProtoMarshaler().MarshalBody(rsp)
+
+		ct := req.Headers()[marshaling.AcceptHeader]
+		marshaler := marshaling.Marshaler(ct)
+		if marshaler == nil { // Fall back to proto
+			marshaler = marshaling.Marshaler(marshaling.ProtoContentType)
 		}
-		if err != nil {
+		if marshaler == nil {
+			log.Errorf("[Mercury] No marshaler for response %s: %s", rsp.Id(), ct)
+		} else if err := marshaler.MarshalBody(rsp); err != nil {
 			log.Errorf("[Mercury] Failed to marshal response %s: %v", rsp.Id(), err)
-			return nil
 		}
 	}
 	return rsp

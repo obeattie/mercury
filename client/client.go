@@ -12,6 +12,7 @@ import (
 	tmsg "github.com/mondough/typhon/message"
 	tperrors "github.com/mondough/typhon/proto/error"
 	"github.com/obeattie/mercury"
+	"github.com/obeattie/mercury/marshaling"
 	"github.com/obeattie/mercury/transport"
 )
 
@@ -146,7 +147,10 @@ func (c *client) performCall(call clientCall, middleware []ClientMiddleware, tra
 		// call's response nil
 		if rsp.IsError() {
 			errRsp := rsp.Copy()
-			unmarshaler := tmsg.ProtoUnmarshaler(&tperrors.Error{})
+			unmarshaler := marshaling.Unmarshaler(rsp.Headers()[marshaling.ContentTypeHeader], &tperrors.Error{})
+			if unmarshaler == nil {
+				unmarshaler = marshaling.Unmarshaler(marshaling.ContentTypeHeader, &tperrors.Error{})
+			}
 			if unmarshalErr := unmarshaler.UnmarshalPayload(errRsp); unmarshalErr != nil {
 				call.err = terrors.Wrap(unmarshalErr)
 				call.err.Code = terrors.ErrBadResponse

@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/obeattie/mercury.svg?branch=master)](https://travis-ci.org/obeattie/mercury)
 [![GoDoc](https://godoc.org/github.com/obeattie/mercury?status.svg)](https://godoc.org/github.com/obeattie/mercury)
 
-An RPC client/server implementation using [Typhon](https://github.com/obeattie/typhon), intended for building microservices.
+An RPC client/server implementation using [Typhon](https://github.com/mondough/typhon), intended for building microservices.
 
 ## Server
 

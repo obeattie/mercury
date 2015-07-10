@@ -12,6 +12,7 @@ import (
 	"github.com/mondough/typhon/rabbit"
 	"github.com/obeattie/mercury"
 	"github.com/obeattie/mercury/client"
+	"github.com/obeattie/mercury/marshaling"
 	"github.com/obeattie/mercury/server"
 	"github.com/obeattie/mercury/testproto"
 	"github.com/obeattie/mercury/transport"
@@ -148,8 +149,8 @@ func (suite *clientServerSuite) TestJSON() {
 	req.SetService(testServiceName)
 	req.SetEndpoint("test")
 	req.SetPayload([]byte(`{ "ping": "blah blah blah" }`))
-	req.SetHeader("Content-Type", "application/json")
-	req.SetHeader("Accept", "application/json")
+	req.SetHeader(marshaling.ContentTypeHeader, "application/json")
+	req.SetHeader(marshaling.AcceptHeader, "application/json")
 
 	cl := client.NewClient().
 		SetMiddleware(DefaultClientMiddleware()).
@@ -175,7 +176,7 @@ func (suite *clientServerSuite) TestJSON_Error() {
 			Request:  new(testproto.DummyRequest),
 			Response: new(testproto.DummyResponse),
 			Handler: func(req mercury.Request) (mercury.Response, error) {
-				err := terrors.BadRequest("Foo bar")
+				err := terrors.Forbidden("Foo bar")
 				err.PrivateContext = map[string]string{
 					"Foo": "Bar",
 				}
@@ -189,8 +190,8 @@ func (suite *clientServerSuite) TestJSON_Error() {
 	req.SetService(testServiceName)
 	req.SetEndpoint("error")
 	req.SetPayload([]byte(`{ "ping": "blah blah blah" }`))
-	req.SetHeader("Content-Type", "application/json")
-	req.SetHeader("Accept", "application/json")
+	req.SetHeader(marshaling.ContentTypeHeader, "application/json")
+	req.SetHeader(marshaling.AcceptHeader, "application/json")
 
 	cl := client.NewClient().
 		SetMiddleware(DefaultClientMiddleware()).
@@ -205,8 +206,8 @@ func (suite *clientServerSuite) TestJSON_Error() {
 	rsp := cl.Response("call")
 	suite.Require().NotNil(rsp)
 	suite.Assert().True(rsp.IsError())
-	suite.Assert().Equal(mercury.JSONContentType, rsp.Headers()[mercury.ContentTypeHeader])
-	suite.Assert().Equal(terrors.ErrBadRequest, err.Code)
+	suite.Assert().Equal(marshaling.JSONContentType, rsp.Headers()[marshaling.ContentTypeHeader])
+	suite.Assert().Equal(terrors.ErrForbidden, err.Code)
 	suite.Assert().Equal("Foo bar", err.Message)
 	suite.Assert().Equal("Bar", err.PrivateContext["Foo"])
 	suite.Assert().Equal("Boop", err.PublicContext["Boop"])

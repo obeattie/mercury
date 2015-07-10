@@ -15,6 +15,7 @@ import (
 	pe "github.com/mondough/typhon/proto/error"
 	"github.com/mondough/typhon/rabbit"
 	"github.com/obeattie/mercury"
+	"github.com/obeattie/mercury/marshaling"
 	"github.com/obeattie/mercury/testproto"
 	"github.com/obeattie/mercury/transport"
 )
@@ -273,13 +274,13 @@ func (suite *serverSuite) TestJSONResponse() {
 	req.SetEndpoint("dummy")
 	req.SetBody(map[string]string{
 		"ping": "json"})
-	req.SetHeader("Accept", "application/json")
+	req.SetHeader(marshaling.AcceptHeader, "application/json")
 	suite.Assert().NoError(tmsg.JSONMarshaler().MarshalBody(req))
 
 	rsp, err := suite.trans.Send(req, time.Second)
 	suite.Assert().NoError(err)
 	suite.Assert().NotNil(rsp)
 
-	suite.Assert().Equal("application/json", rsp.Headers()["Content-Type"])
+	suite.Assert().Equal("application/json", rsp.Headers()[marshaling.ContentTypeHeader])
 	suite.Assert().Equal(`{"pong":"json"}`, string(rsp.Payload()))
 }
