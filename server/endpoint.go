@@ -4,6 +4,7 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/marshaling"
 	terrors "github.com/mondough/typhon/errors"
 	tmsg "github.com/mondough/typhon/message"
 )
@@ -23,16 +24,20 @@ type Endpoint struct {
 	Response proto.Message
 }
 
+func (e Endpoint) unmarshaler(req mercury.Request) tmsg.Unmarshaler {
+	return marshaling.Unmarshaler(req.Headers()[marshaling.ContentTypeHeader], e.Request)
+}
+
 // Handle takes an inbound Request, unmarshals it as a protobuf, dispatches it to the handler, and serialises the
 // result as a Response. Note that the response may be nil.
 func (e Endpoint) Handle(req mercury.Request) (mercury.Response, error) {
-	var err *terrors.Error
-
 	// Unmarshal the request body (unless there already is one)
 	if req.Body() == nil && e.Request != nil {
-		if err = terrors.Wrap(tmsg.ProtoUnmarshaler(e.Request).UnmarshalPayload(req)); err != nil {
-			err.Code = terrors.ErrBadRequest
-			return nil, err
+		if um := e.unmarshaler(req); um != nil {
+			if err := terrors.Wrap(um.UnmarshalPayload(req)); err != nil {
+				err.Code = terrors.ErrBadRequest
+				return nil, err
+			}
 		}
 	}
 
