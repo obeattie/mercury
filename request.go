@@ -5,18 +5,14 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
-	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 
+	"github.com/mondough/mercury/marshaling"
 	tmsg "github.com/mondough/typhon/message"
 )
 
 const (
-	errHeader         = "Content-Error"
-	ContentTypeHeader = "Content-Type"
-	acceptHeader      = "Accept"
-	ProtoContentType  = tmsg.ProtoContentType
-	JSONContentType   = tmsg.JSONContentType
+	errHeader = "Content-Error"
 )
 
 // A Request is a representation of an RPC call (inbound or outbound). It extends Typhon's Request to provide a
@@ -25,32 +21,32 @@ type Request interface {
 	tmsg.Request
 	context.Context
 
-	// Response constructs a response to this request, with the (optional) given body proto. The response will share
+	// Response constructs a response to this request, with the (optional) given body. The response will share
 	// the request's ID, and be destined for the originator.
-	Response(body proto.Message) Response
+	Response(body interface{}) Response
 	// A Context for the Request.
 	Context() context.Context
 	// SetContext replaces the Request's Context.
 	SetContext(ctx context.Context)
 }
 
-func responseFromRequest(req Request, body proto.Message) Response {
+func responseFromRequest(req Request, body interface{}) Response {
 	rsp := NewResponse()
 	rsp.SetId(req.Id())
 	rsp.SetService(req.Service())
 	rsp.SetEndpoint(req.Endpoint())
 	if body != nil {
 		rsp.SetBody(body)
-		var err error
-		switch req.Headers()[acceptHeader] {
-		case JSONContentType:
-			err = tmsg.JSONMarshaler().MarshalBody(rsp)
-		default:
-			err = tmsg.ProtoMarshaler().MarshalBody(rsp)
+
+		ct := req.Headers()[marshaling.AcceptHeader]
+		marshaler := marshaling.Marshaler(ct)
+		if marshaler == nil { // Fall back to proto
+			marshaler = marshaling.Marshaler(marshaling.ProtoContentType)
 		}
-		if err != nil {
+		if marshaler == nil {
+			log.Errorf("[Mercury] No marshaler for response %s: %s", rsp.Id(), ct)
+		} else if err := marshaler.MarshalBody(rsp); err != nil {
 			log.Errorf("[Mercury] Failed to marshal response %s: %v", rsp.Id(), err)
-			return nil
 		}
 	}
 	return rsp
@@ -62,7 +58,7 @@ type request struct {
 	ctx context.Context
 }
 
-func (r *request) Response(body proto.Message) Response {
+func (r *request) Response(body interface{}) Response {
 	return responseFromRequest(r, body)
 }
 

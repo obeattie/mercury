@@ -9,6 +9,7 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/marshaling"
 	"github.com/mondough/mercury/transport"
 	terrors "github.com/mondough/typhon/errors"
 	tmsg "github.com/mondough/typhon/message"
@@ -123,6 +124,14 @@ func (c *client) Errors() ErrorSet {
 	return errs
 }
 
+func (c *client) unmarshaler(rsp mercury.Response, protocol interface{}) tmsg.Unmarshaler {
+	result := marshaling.Unmarshaler(rsp.Headers()[marshaling.ContentTypeHeader], protocol)
+	if result == nil { // Default to proto
+		result = marshaling.Unmarshaler(marshaling.ProtoContentType, protocol)
+	}
+	return result
+}
+
 // performCall executes a single Call, unmarshals the response (if there is a response proto), and pushes the updted
 // clientCall down the response channel
 func (c *client) performCall(call clientCall, middleware []ClientMiddleware, trans transport.Transport,
@@ -146,8 +155,7 @@ func (c *client) performCall(call clientCall, middleware []ClientMiddleware, tra
 		// call's response nil
 		if rsp.IsError() {
 			errRsp := rsp.Copy()
-			unmarshaler := tmsg.ProtoUnmarshaler(&tperrors.Error{})
-			if unmarshalErr := unmarshaler.UnmarshalPayload(errRsp); unmarshalErr != nil {
+			if unmarshalErr := c.unmarshaler(rsp, &tperrors.Error{}).UnmarshalPayload(errRsp); unmarshalErr != nil {
 				call.err = terrors.Wrap(unmarshalErr)
 				call.err.Code = terrors.ErrBadResponse
 			} else {
@@ -165,9 +173,7 @@ func (c *client) performCall(call clientCall, middleware []ClientMiddleware, tra
 
 		} else if call.rspProto != nil {
 			rsp.SetBody(call.rspProto)
-			unmarshaler := tmsg.ProtoUnmarshaler(call.rspProto)
-			if err := unmarshaler.UnmarshalPayload(rsp); err != nil {
-				log.Warnf("[Mercury:Client] Could not unmarshal response: %v", err)
+			if err := c.unmarshaler(rsp, call.rspProto).UnmarshalPayload(rsp); err != nil {
 				call.err = terrors.Wrap(err)
 				call.err.Code = terrors.ErrBadResponse
 			}

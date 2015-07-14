@@ -9,6 +9,7 @@ import (
 
 	"github.com/mondough/mercury"
 	"github.com/mondough/mercury/client"
+	"github.com/mondough/mercury/marshaling"
 	"github.com/mondough/mercury/server"
 	"github.com/mondough/mercury/testproto"
 	"github.com/mondough/mercury/transport"
@@ -148,8 +149,8 @@ func (suite *clientServerSuite) TestJSON() {
 	req.SetService(testServiceName)
 	req.SetEndpoint("test")
 	req.SetPayload([]byte(`{ "ping": "blah blah blah" }`))
-	req.SetHeader("Content-Type", "application/json")
-	req.SetHeader("Accept", "application/json")
+	req.SetHeader(marshaling.ContentTypeHeader, "application/json")
+	req.SetHeader(marshaling.AcceptHeader, "application/json")
 
 	cl := client.NewClient().
 		SetMiddleware(DefaultClientMiddleware()).
@@ -166,48 +167,4 @@ func (suite *clientServerSuite) TestJSON() {
 	suite.Assert().NotNil(body)
 	suite.Assert().Equal(1, len(body))
 	suite.Assert().Equal("blah blah blah", body["pong"])
-}
-
-func (suite *clientServerSuite) TestJSON_Error() {
-	suite.server.AddEndpoints(
-		server.Endpoint{
-			Name:     "error",
-			Request:  new(testproto.DummyRequest),
-			Response: new(testproto.DummyResponse),
-			Handler: func(req mercury.Request) (mercury.Response, error) {
-				err := terrors.BadRequest("Foo bar")
-				err.PrivateContext = map[string]string{
-					"Foo": "Bar",
-				}
-				err.PublicContext = map[string]string{
-					"Boop": "Boop",
-				}
-				return nil, err
-			}})
-
-	req := mercury.NewRequest()
-	req.SetService(testServiceName)
-	req.SetEndpoint("error")
-	req.SetPayload([]byte(`{ "ping": "blah blah blah" }`))
-	req.SetHeader("Content-Type", "application/json")
-	req.SetHeader("Accept", "application/json")
-
-	cl := client.NewClient().
-		SetMiddleware(DefaultClientMiddleware()).
-		AddRequest("call", req).
-		SetTransport(suite.trans).
-		SetTimeout(time.Second).
-		Execute()
-
-	suite.Assert().Len(cl.Errors(), 1)
-	err := cl.Errors().ForUid("call")
-	suite.Require().Error(err)
-	rsp := cl.Response("call")
-	suite.Require().NotNil(rsp)
-	suite.Assert().True(rsp.IsError())
-	suite.Assert().Equal(mercury.JSONContentType, rsp.Headers()[mercury.ContentTypeHeader])
-	suite.Assert().Equal(terrors.ErrBadRequest, err.Code)
-	suite.Assert().Equal("Foo bar", err.Message)
-	suite.Assert().Equal("Bar", err.PrivateContext["Foo"])
-	suite.Assert().Equal("Boop", err.PublicContext["Boop"])
 }
