@@ -119,7 +119,9 @@ func (s *server) start(trans transport.Transport) (*tomb.Tomb, error) {
 		case <-trans.Ready():
 			inbound = make(chan tmsg.Request, 500)
 			return trans.Listen(s.Name(), inbound)
+
 		case <-time.After(connectTimeout):
+			log.Warnf("[Mercury:Server] Timed out after %s waiting for transport readiness", connectTimeout.String())
 			return ttrans.ErrTimeout
 		}
 	}
@@ -256,9 +258,13 @@ func (s *server) AddMiddleware(mw ServerMiddleware) {
 // ErrorResponse constructs a response for the given request, with the given error as its contents. Mercury clients
 // know how to unmarshal these errors.
 func ErrorResponse(req mercury.Request, err error) mercury.Response {
-	rsp := req.Response(terrors.Marshal(terrors.Wrap(err)))
-	if rsp != nil {
-		rsp.SetIsError(true)
+	// Responses should always be serialised as protobuf
+	rsp := req.Response(nil)
+	rsp.SetBody(terrors.Marshal(terrors.Wrap(err)))
+	if err := tmsg.ProtoMarshaler().MarshalBody(rsp); err != nil {
+		log.Errorf("[Mercury:Server] Failed to marshal error response: %v", err)
+		return nil // Not much we can do here
 	}
+	rsp.SetIsError(true)
 	return rsp
 }

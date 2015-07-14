@@ -5,7 +5,6 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
-	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 
 	tmsg "github.com/mondough/typhon/message"
@@ -22,16 +21,16 @@ type Request interface {
 	tmsg.Request
 	context.Context
 
-	// Response constructs a response to this request, with the (optional) given body proto. The response will share
+	// Response constructs a response to this request, with the (optional) given body. The response will share
 	// the request's ID, and be destined for the originator.
-	Response(body proto.Message) Response
+	Response(body interface{}) Response
 	// A Context for the Request.
 	Context() context.Context
 	// SetContext replaces the Request's Context.
 	SetContext(ctx context.Context)
 }
 
-func responseFromRequest(req Request, body proto.Message) Response {
+func responseFromRequest(req Request, body interface{}) Response {
 	rsp := NewResponse()
 	rsp.SetId(req.Id())
 	rsp.SetService(req.Service())
@@ -59,7 +58,7 @@ type request struct {
 	ctx context.Context
 }
 
-func (r *request) Response(body proto.Message) Response {
+func (r *request) Response(body interface{}) Response {
 	return responseFromRequest(r, body)
 }
 
