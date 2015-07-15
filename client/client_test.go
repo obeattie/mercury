@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -230,4 +231,32 @@ func (suite *clientSuite) TestMiddleware() {
 	suite.Assert().Equal("X-Bar", rsp.Headers()["X-Foo"])
 	// ProcessClientResponse should not have run
 	suite.Assert().Empty(rsp.Headers()["X-Boop"])
+}
+
+// TestParallelCalls verifies that many calls made in parallel are routed correctly, and their responses/errors are
+// available in the proper places.
+func (suite *clientSuite) TestParallelCalls() {
+	client := NewClient().
+		SetTimeout(5 * time.Second).
+		SetTransport(suite.trans)
+
+	for i := 0; i < 100; i++ {
+		uid := fmt.Sprintf("call%d", i)
+		client = client.Add(Call{
+			Uid:      uid,
+			Service:  testServiceName,
+			Endpoint: "foo",
+			Response: new(testproto.DummyResponse),
+			Headers: map[string]string{
+				"Iteration": uid}})
+	}
+
+	client.Execute()
+	suite.Require().Empty(client.Errors())
+
+	for i := 0; i < 100; i++ {
+		uid := fmt.Sprintf("call%d", i)
+		rsp := client.Response(uid)
+		suite.Assert().Equal(uid, rsp.Headers()["Iteration"])
+	}
 }
