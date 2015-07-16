@@ -9,6 +9,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/marshaling"
 	"github.com/mondough/mercury/testproto"
 	"github.com/mondough/mercury/transport"
 	terrors "github.com/mondough/typhon/errors"
@@ -72,6 +73,12 @@ func (suite *clientSuite) SetupSuite() {
 					err := terrors.BadRequest("foo bar")
 					rsp := req.Response(terrors.Marshal(err))
 					rsp.SetHeaders(req.Headers())
+					suite.Require().NoError(trans.Respond(req, rsp))
+
+				case "bulls--t":
+					rsp := req.Response(map[string]string{})
+					rsp.SetHeaders(req.Headers())
+					rsp.SetHeader(marshaling.ContentTypeHeader, "application/bulls--t")
 					suite.Require().NoError(trans.Respond(req, rsp))
 
 				default:
@@ -259,4 +266,66 @@ func (suite *clientSuite) TestParallelCalls() {
 		rsp := client.Response(uid)
 		suite.Assert().Equal(uid, rsp.Headers()["Iteration"])
 	}
+}
+
+type bsMarshaler struct{}
+
+func (m bsMarshaler) MarshalBody(msg tmsg.Message) error {
+	msg.SetPayload([]byte("total garbage"))
+	return nil
+}
+
+func (m bsMarshaler) UnmarshalPayload(msg tmsg.Message) error {
+	msg.SetBody(map[string]string{
+		"1": "2",
+	})
+	return nil
+}
+
+// TestCustomMarshaler registers a custom marshaler and then checks a request can be made using it
+func (suite *clientSuite) TestCustomMarshaler() {
+	marshaling.Register(
+		"application/bulls--t",
+		func() tmsg.Marshaler { return bsMarshaler{} },
+		func(_ interface{}) tmsg.Unmarshaler { return bsMarshaler{} },
+	)
+
+	cl := NewClient().
+		Add(Call{
+		Uid:      "foo",
+		Service:  testServiceName,
+		Endpoint: "bulls--t",
+		Body:     map[string]string{},
+		Response: map[string]string{},
+		Headers: map[string]string{
+			marshaling.ContentTypeHeader: "application/bulls--t",
+			marshaling.AcceptHeader:      "application/bulls--t"}}).
+		SetTransport(suite.trans).
+		SetTimeout(time.Second)
+
+	suite.Require().NoError(cl.Execute().Errors().Combined())
+	rsp := cl.Response("foo")
+	suite.Require().NotNil(rsp)
+	suite.Require().IsType(map[string]string{}, rsp.Body())
+	suite.Require().Equal(map[string]string{
+		"1": "2",
+	}, rsp.Body().(map[string]string))
+}
+
+type invalidBodyT struct{}
+
+// TestInvalidBody verifies that an incorrect type passed as the `Body` returns a "bad request" error
+func (suite *clientSuite) TestInvalidBody() {
+	cl := NewClient().Add(Call{
+		Uid:      "call",
+		Service:  "notathing", // We would get a timeout if the service *did* exist
+		Endpoint: "reallynotathing",
+		Body:     invalidBodyT{},
+		Response: &testproto.DummyResponse{},
+	}).
+		SetTransport(suite.trans)
+
+	err := cl.Execute().Errors().ForUid("call")
+	suite.Require().Error(err)
+	suite.Assert().Equal(terrors.ErrBadRequest, err.Code)
 }

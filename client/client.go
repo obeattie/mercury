@@ -6,7 +6,6 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
-	"github.com/golang/protobuf/proto"
 
 	"github.com/mondough/mercury"
 	"github.com/mondough/mercury/marshaling"
@@ -27,7 +26,7 @@ type clientCall struct {
 	uid      string           // unique identifier within a client
 	req      mercury.Request  // may be nil in the case of a request marshaling failure
 	rsp      mercury.Response // set when a response is received
-	rspProto proto.Message    // shared with rsp when unmarshaled
+	rspProto interface{}      // shared with rsp when unmarshaled
 	err      *terrors.Error   // execution error or unmarshalled (remote) error
 }
 
@@ -116,8 +115,10 @@ func (c *client) Errors() ErrorSet {
 		if call.err != nil {
 			err := call.err
 			err.PrivateContext[errUidField] = uid
-			err.PrivateContext[errServiceField] = call.req.Service()
-			err.PrivateContext[errEndpointField] = call.req.Endpoint()
+			if call.req != nil {
+				err.PrivateContext[errServiceField] = call.req.Service()
+				err.PrivateContext[errEndpointField] = call.req.Endpoint()
+			}
 			errs = append(errs, err)
 		}
 	}
