@@ -258,7 +258,6 @@ func (s *server) AddMiddleware(mw ServerMiddleware) {
 // ErrorResponse constructs a response for the given request, with the given error as its contents. Mercury clients
 // know how to unmarshal these errors.
 func ErrorResponse(req mercury.Request, err error) mercury.Response {
-	// Responses should always be serialised as protobuf
 	rsp := req.Response(nil)
 	rsp.SetBody(terrors.Marshal(terrors.Wrap(err)))
 	if err := tmsg.ProtoMarshaler().MarshalBody(rsp); err != nil {

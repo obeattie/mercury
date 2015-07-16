@@ -6,7 +6,6 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
-	"github.com/golang/protobuf/proto"
 
 	terrors "github.com/mondough/typhon/errors"
 	tmsg "github.com/mondough/typhon/message"
@@ -27,7 +26,7 @@ type clientCall struct {
 	uid      string           // unique identifier within a client
 	req      mercury.Request  // may be nil in the case of a request marshaling failure
 	rsp      mercury.Response // set when a response is received
-	rspProto proto.Message    // shared with rsp when unmarshaled
+	rspProto interface{}      // shared with rsp when unmarshaled
 	err      *terrors.Error   // execution error or unmarshalled (remote) error
 }
 
