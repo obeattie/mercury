@@ -286,12 +286,9 @@ func (m bsMarshaler) UnmarshalPayload(msg tmsg.Message) error {
 func (suite *clientSuite) TestCustomMarshaler() {
 	marshaling.Register(
 		"application/bulls--t",
-		func() tmsg.Marshaler {
-			return bsMarshaler{}
-		},
-		func(_ interface{}) tmsg.Unmarshaler {
-			return bsMarshaler{}
-		})
+		func() tmsg.Marshaler { return bsMarshaler{} },
+		func(_ interface{}) tmsg.Unmarshaler { return bsMarshaler{} },
+	)
 
 	cl := NewClient().
 		Add(Call{
@@ -313,4 +310,22 @@ func (suite *clientSuite) TestCustomMarshaler() {
 	suite.Require().Equal(map[string]string{
 		"1": "2",
 	}, rsp.Body().(map[string]string))
+}
+
+type invalidBodyT struct{}
+
+// TestInvalidBody verifies that an incorrect type passed as the `Body` returns a "bad request" error
+func (suite *clientSuite) TestInvalidBody() {
+	cl := NewClient().Add(Call{
+		Uid:      "call",
+		Service:  "notathing", // We would get a timeout if the service *did* exist
+		Endpoint: "reallynotathing",
+		Body:     invalidBodyT{},
+		Response: &testproto.DummyResponse{},
+	}).
+		SetTransport(suite.trans)
+
+	err := cl.Execute().Errors().ForUid("call")
+	suite.Require().Error(err)
+	suite.Assert().Equal(terrors.ErrBadRequest, err.Code)
 }

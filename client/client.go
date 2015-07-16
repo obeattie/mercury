@@ -115,8 +115,10 @@ func (c *client) Errors() ErrorSet {
 		if call.err != nil {
 			err := call.err
 			err.PrivateContext[errUidField] = uid
-			err.PrivateContext[errServiceField] = call.req.Service()
-			err.PrivateContext[errEndpointField] = call.req.Endpoint()
+			if call.req != nil {
+				err.PrivateContext[errServiceField] = call.req.Service()
+				err.PrivateContext[errEndpointField] = call.req.Endpoint()
+			}
 			errs = append(errs, err)
 		}
 	}
