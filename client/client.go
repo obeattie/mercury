@@ -149,7 +149,7 @@ func (c *client) performCall(call clientCall, middleware []ClientMiddleware, tra
 	rsp_, err := trans.Send(req, timeout)
 	if err != nil {
 		call.err = terrors.Wrap(err)
-	} else {
+	} else if rsp_ != nil {
 		rsp := mercury.FromTyphonResponse(rsp_)
 
 		// Servers set header Content-Error: 1 when sending errors. For those requests, unmarshal the error, leaving the

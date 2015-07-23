@@ -221,7 +221,6 @@ func (s *server) handle(trans transport.Transport, req_ tmsg.Request) {
 				log.Debugf("[Mercury:Server] Full request: %+v", req.Body())
 				log.Debugf("[Mercury:Server] Full error: %+v", rsp.Body())
 			} else if rsp_ == nil {
-				log.Warnf("[Mercury:Server] Got nil response from endpoint %s for request %s", ep.Name, req.Id())
 				rsp = req.Response(nil)
 			} else {
 				rsp = rsp_
