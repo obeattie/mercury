@@ -1,6 +1,8 @@
 package server
 
 import (
+	"runtime"
+
 	log "github.com/cihub/seelog"
 	terrors "github.com/mondough/typhon/errors"
 	tmsg "github.com/mondough/typhon/message"
@@ -44,7 +46,9 @@ func (e Endpoint) Handle(req mercury.Request) (rsp mercury.Response, err error) 
 
 	defer func() {
 		if v := recover(); v != nil {
-			log.Criticalf("[Mercury:Server] Recovered from handler panic for request %s: %v", req.Id(), v)
+			traceVerbose := make([]byte, 1024)
+			runtime.Stack(traceVerbose, true)
+			log.Criticalf("[Mercury:Server] Recovered from handler panic for request %s:\n%v\n%s", req.Id(), v, traceVerbose)
 			rsp, err = nil, terrors.InternalService("Unhandled exception in endpoint handler")
 		}
 	}()
