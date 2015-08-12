@@ -6,6 +6,7 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
+	"github.com/nu7hatch/gouuid"
 
 	"github.com/mondough/mercury"
 	"github.com/mondough/mercury/marshaling"
@@ -138,8 +139,21 @@ func (c *client) unmarshaler(rsp mercury.Response, protocol interface{}) tmsg.Un
 func (c *client) performCall(call clientCall, middleware []ClientMiddleware, trans transport.Transport,
 	timeout time.Duration, completion chan<- clientCall) {
 
-	// Apply request middleware
 	req := call.req
+
+	// Ensure we have a request ID before the request middleware is executed
+	if id := req.Id(); id == "" {
+		_uuid, err := uuid.NewV4()
+		if err != nil {
+			log.Errorf("[Mercury:Client] Failed to generate request uuid: %v", err)
+			call.err = terrors.Wrap(err)
+			completion <- call
+			return
+		}
+		req.SetId(_uuid.String())
+	}
+
+	// Apply request middleware
 	for _, md := range middleware {
 		req = md.ProcessClientRequest(req)
 	}
