@@ -20,6 +20,15 @@ func (m requestTreeMiddleware) ProcessClientRequest(req mercury.Request) mercury
 			req.SetHeader(parentIdHeader, parentId)
 		}
 	}
+
+	// Pass through the current service and endpoint as the origin of this request
+	if svc, ok := req.Value("Service").(string); ok {
+		req.SetHeader("Origin-Service", svc)
+	}
+	if ept, ok := req.Value("Endpoint").(string); ok {
+		req.SetHeader("Origin-Endpoint", ept)
+	}
+
 	return req
 }
 
@@ -34,6 +43,15 @@ func (m requestTreeMiddleware) ProcessServerRequest(req mercury.Request) (mercur
 	if v := req.Headers()[parentIdHeader]; v != "" {
 		req.SetContext(context.WithValue(req.Context(), parentIdCtxKey, v))
 	}
+
+	// Set the current service and endpoint into the context
+	req.SetContext(context.WithValue(req.Context(), "Service", req.Service()))
+	req.SetContext(context.WithValue(req.Context(), "Endpoint", req.Endpoint()))
+
+	// Set the originator into the context
+	req.SetContext(context.WithValue(req.Context(), "Origin-Service", req.Headers()["Origin-Service"]))
+	req.SetContext(context.WithValue(req.Context(), "Origin-Endpoint", req.Headers()["Origin-Endpoint"]))
+
 	return req, nil
 }
 
