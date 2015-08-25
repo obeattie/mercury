@@ -41,16 +41,12 @@ func (suite *parentRequestIdMiddlewareSuite) SetupTest() {
 			Handler: func(req mercury.Request) (mercury.Response, error) {
 
 				// Assert first call has correct origin
-				originService, _ := req.Context().Value("Origin-Service").(string)
-				suite.Assert().Equal(testOriginServiceName, originService)
-				originEndpoint, _ := req.Context().Value("Origin-Endpoint").(string)
-				suite.Assert().Equal("e2etest", originEndpoint)
+				suite.Assert().Equal(testOriginServiceName, OriginServiceFor(req))
+				suite.Assert().Equal("e2etest", OriginEndpointFor(req))
 
 				// Assert first call has updated to the current service
-				currentService, _ := req.Context().Value("Current-Service").(string)
-				suite.Assert().Equal(testServiceName, currentService)
-				currentEndpoint, _ := req.Context().Value("Current-Endpoint").(string)
-				suite.Assert().Equal("foo", currentEndpoint)
+				suite.Assert().Equal(testServiceName, CurrentServiceFor(req))
+				suite.Assert().Equal("foo", CurrentEndpointFor(req))
 
 				cl := client.NewClient().
 					SetTransport(suite.trans).
@@ -74,16 +70,12 @@ func (suite *parentRequestIdMiddlewareSuite) SetupTest() {
 			Handler: func(req mercury.Request) (mercury.Response, error) {
 
 				// Assert origin headers were set correctly as previous service
-				originService, _ := req.Context().Value("Origin-Service").(string)
-				suite.Assert().Equal(testServiceName, originService)
-				originEndpoint, _ := req.Context().Value("Origin-Endpoint").(string)
-				suite.Assert().Equal("foo", originEndpoint)
+				suite.Assert().Equal(testServiceName, OriginServiceFor(req))
+				suite.Assert().Equal("foo", OriginEndpointFor(req))
 
 				// And that our current service's headers were set
-				currentService, _ := req.Context().Value("Current-Service").(string)
-				suite.Assert().Equal(testServiceName, currentService)
-				currentEndpoint, _ := req.Context().Value("Current-Endpoint").(string)
-				suite.Assert().Equal("foo-2", currentEndpoint)
+				suite.Assert().Equal(testServiceName, CurrentServiceFor(req))
+				suite.Assert().Equal("foo-2", CurrentEndpointFor(req))
 
 				return req.Response(&testproto.DummyResponse{
 					Pong: ParentRequestIdFor(req)}), nil
