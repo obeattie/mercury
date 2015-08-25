@@ -70,3 +70,35 @@ func (m requestTreeMiddleware) ProcessServerResponse(rsp mercury.Response, ctx c
 func Middleware() requestTreeMiddleware {
 	return requestTreeMiddleware{}
 }
+
+// OriginServiceFor returns the originating service for this context
+func OriginServiceFor(ctx context.Context) string {
+	if s, ok := ctx.Value(originServiceHeader).(string); ok {
+		return s
+	}
+	return ""
+}
+
+// OriginEndpointFor returns the originating endpoint for this context
+func OriginEndpointFor(ctx context.Context) string {
+	if e, ok := ctx.Value(originEndpointHeader).(string); ok {
+		return e
+	}
+	return ""
+}
+
+// CurrentServiceFor returns the current service that this context is executing within
+func CurrentServiceFor(ctx context.Context) string {
+	if s, ok := ctx.Value(currentServiceHeader).(string); ok {
+		return s
+	}
+	return ""
+}
+
+// CurrentEndpointFor returns the current endpoint that this context is executing within
+func CurrentEndpointFor(ctx context.Context) string {
+	if e, ok := ctx.Value(currentEndpointHeader).(string); ok {
+		return e
+	}
+	return ""
+}
