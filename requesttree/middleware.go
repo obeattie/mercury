@@ -10,6 +10,11 @@ import (
 const (
 	parentIdHeader = "Parent-Request-ID"
 	reqIdCtxKey    = "Request-ID"
+
+	currentServiceHeader  = "Current-Service"
+	currentEndpointHeader = "Current-Endpoint"
+	originServiceHeader   = "Origin-Service"
+	originEndpointHeader  = "Origin-Endpoint"
 )
 
 type requestTreeMiddleware struct{}
@@ -22,11 +27,11 @@ func (m requestTreeMiddleware) ProcessClientRequest(req mercury.Request) mercury
 	}
 
 	// Pass through the current service and endpoint as the origin of this request
-	if svc, ok := req.Value("Current-Service").(string); ok {
-		req.SetHeader("Origin-Service", svc)
+	if svc, ok := req.Value(currentServiceHeader).(string); ok {
+		req.SetHeader(originServiceHeader, svc)
 	}
-	if ept, ok := req.Value("Current-Endpoint").(string); ok {
-		req.SetHeader("Origin-Endpoint", ept)
+	if ept, ok := req.Value(currentEndpointHeader).(string); ok {
+		req.SetHeader(originEndpointHeader, ept)
 	}
 
 	return req
@@ -45,12 +50,12 @@ func (m requestTreeMiddleware) ProcessServerRequest(req mercury.Request) (mercur
 	}
 
 	// Set the current service and endpoint into the context
-	req.SetContext(context.WithValue(req.Context(), "Current-Service", req.Service()))
-	req.SetContext(context.WithValue(req.Context(), "Current-Endpoint", req.Endpoint()))
+	req.SetContext(context.WithValue(req.Context(), currentServiceHeader, req.Service()))
+	req.SetContext(context.WithValue(req.Context(), currentEndpointHeader, req.Endpoint()))
 
 	// Set the originator into the context
-	req.SetContext(context.WithValue(req.Context(), "Origin-Service", req.Headers()["Origin-Service"]))
-	req.SetContext(context.WithValue(req.Context(), "Origin-Endpoint", req.Headers()["Origin-Endpoint"]))
+	req.SetContext(context.WithValue(req.Context(), originServiceHeader, req.Headers()[originServiceHeader]))
+	req.SetContext(context.WithValue(req.Context(), originEndpointHeader, req.Headers()[originEndpointHeader]))
 
 	return req, nil
 }
