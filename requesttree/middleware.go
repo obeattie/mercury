@@ -22,10 +22,10 @@ func (m requestTreeMiddleware) ProcessClientRequest(req mercury.Request) mercury
 	}
 
 	// Pass through the current service and endpoint as the origin of this request
-	if svc, ok := req.Value("Service").(string); ok {
+	if svc, ok := req.Value("Current-Service").(string); ok {
 		req.SetHeader("Origin-Service", svc)
 	}
-	if ept, ok := req.Value("Endpoint").(string); ok {
+	if ept, ok := req.Value("Current-Endpoint").(string); ok {
 		req.SetHeader("Origin-Endpoint", ept)
 	}
 
@@ -45,8 +45,8 @@ func (m requestTreeMiddleware) ProcessServerRequest(req mercury.Request) (mercur
 	}
 
 	// Set the current service and endpoint into the context
-	req.SetContext(context.WithValue(req.Context(), "Service", req.Service()))
-	req.SetContext(context.WithValue(req.Context(), "Endpoint", req.Endpoint()))
+	req.SetContext(context.WithValue(req.Context(), "Current-Service", req.Service()))
+	req.SetContext(context.WithValue(req.Context(), "Current-Endpoint", req.Endpoint()))
 
 	// Set the originator into the context
 	req.SetContext(context.WithValue(req.Context(), "Origin-Service", req.Headers()["Origin-Service"]))
