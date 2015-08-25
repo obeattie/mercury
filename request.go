@@ -108,6 +108,6 @@ func NewRequest() Request {
 func FromTyphonRequest(req tmsg.Request) Request {
 	return &request{
 		Request: req,
-		ctx:     context.TODO(),
+		ctx:     context.Background(),
 	}
 }
