@@ -3,6 +3,8 @@ package requesttree
 import (
 	"testing"
 
+	"golang.org/x/net/context"
+
 	"github.com/stretchr/testify/suite"
 
 	"github.com/mondough/mercury"
@@ -13,6 +15,7 @@ import (
 	"github.com/mondough/typhon/mock"
 )
 
+const testOriginServiceName = "service.requesttree-origin"
 const testServiceName = "service.requesttree-example"
 
 func TestParentRequestIdMiddlewareSuite(t *testing.T) {
@@ -36,6 +39,19 @@ func (suite *parentRequestIdMiddlewareSuite) SetupTest() {
 			Request:  &testproto.DummyRequest{},
 			Response: &testproto.DummyResponse{},
 			Handler: func(req mercury.Request) (mercury.Response, error) {
+
+				// Assert first call has correct origin
+				originService, _ := req.Context().Value("Origin-Service").(string)
+				suite.Assert().Equal(testOriginServiceName, originService)
+				originEndpoint, _ := req.Context().Value("Origin-Endpoint").(string)
+				suite.Assert().Equal("e2etest", originEndpoint)
+
+				// Assert first call has updated to the current service
+				currentService, _ := req.Context().Value("Current-Service").(string)
+				suite.Assert().Equal(testServiceName, currentService)
+				currentEndpoint, _ := req.Context().Value("Current-Endpoint").(string)
+				suite.Assert().Equal("foo", currentEndpoint)
+
 				cl := client.NewClient().
 					SetTransport(suite.trans).
 					SetMiddleware([]client.ClientMiddleware{Middleware()}).
@@ -56,6 +72,19 @@ func (suite *parentRequestIdMiddlewareSuite) SetupTest() {
 			Request:  &testproto.DummyRequest{},
 			Response: &testproto.DummyResponse{},
 			Handler: func(req mercury.Request) (mercury.Response, error) {
+
+				// Assert origin headers were set correctly as previous service
+				originService, _ := req.Context().Value("Origin-Service").(string)
+				suite.Assert().Equal(testServiceName, originService)
+				originEndpoint, _ := req.Context().Value("Origin-Endpoint").(string)
+				suite.Assert().Equal("foo", originEndpoint)
+
+				// And that our current service's headers were set
+				currentService, _ := req.Context().Value("Current-Service").(string)
+				suite.Assert().Equal(testServiceName, currentService)
+				currentEndpoint, _ := req.Context().Value("Current-Endpoint").(string)
+				suite.Assert().Equal("foo-2", currentEndpoint)
+
 				return req.Response(&testproto.DummyResponse{
 					Pong: ParentRequestIdFor(req)}), nil
 			}})
@@ -79,6 +108,10 @@ func (suite *parentRequestIdMiddlewareSuite) TestE2E() {
 
 	dummyOrigin := mercury.NewRequest()
 	dummyOrigin.SetId("foobarbaz")
+	ctx := context.WithValue(dummyOrigin.Context(), "Current-Service", testOriginServiceName)
+	ctx = context.WithValue(ctx, "Current-Endpoint", "e2etest")
+	dummyOrigin.SetContext(ctx)
+
 	cli.Add(client.Call{
 		Uid:      "call",
 		Service:  testServiceName,
