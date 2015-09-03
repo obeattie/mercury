@@ -35,10 +35,11 @@ func (e Endpoint) Handle(req mercury.Request) (rsp mercury.Response, err error) 
 	// Unmarshal the request body (unless there already is one)
 	if req.Body() == nil && e.Request != nil {
 		if um := e.unmarshaler(req); um != nil {
-			if err_ := terrors.Wrap(um.UnmarshalPayload(req), nil); err_ != nil {
-				log.Warnf("[Mercury:Server] Cannot unmarshal request payload: %v", err)
-				err_.Code = terrors.ErrBadRequest
-				rsp, err = nil, err_
+			if werr := terrors.Wrap(um.UnmarshalPayload(req), nil); werr != nil {
+				log.Warnf("[Mercury:Server] Cannot unmarshal request payload: %v", werr)
+				terr := werr.(*terrors.Error)
+				terr.Code = terrors.ErrBadRequest
+				rsp, err = nil, terr
 				return
 			}
 		}

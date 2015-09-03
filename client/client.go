@@ -91,7 +91,7 @@ func (c *client) Add(cl Call) Client {
 	}
 	req, err := cl.Request()
 	if err != nil {
-		cc.err = terrors.Wrap(err, nil)
+		cc.err = terrors.Wrap(err, nil).(*terrors.Error)
 	} else {
 		cc.req = req
 	}
@@ -146,7 +146,7 @@ func (c *client) performCall(call clientCall, middleware []ClientMiddleware, tra
 		_uuid, err := uuid.NewV4()
 		if err != nil {
 			log.Errorf("[Mercury:Client] Failed to generate request uuid: %v", err)
-			call.err = terrors.Wrap(err, nil)
+			call.err = terrors.Wrap(err, nil).(*terrors.Error)
 			completion <- call
 			return
 		}
@@ -162,7 +162,7 @@ func (c *client) performCall(call clientCall, middleware []ClientMiddleware, tra
 
 	rsp_, err := trans.Send(req, timeout)
 	if err != nil {
-		call.err = terrors.Wrap(err, nil)
+		call.err = terrors.Wrap(err, nil).(*terrors.Error)
 	} else if rsp_ != nil {
 		rsp := mercury.FromTyphonResponse(rsp_)
 
@@ -171,7 +171,7 @@ func (c *client) performCall(call clientCall, middleware []ClientMiddleware, tra
 		if rsp.IsError() {
 			errRsp := rsp.Copy()
 			if unmarshalErr := c.unmarshaler(rsp, &tperrors.Error{}).UnmarshalPayload(errRsp); unmarshalErr != nil {
-				call.err = terrors.WrapWithCode(unmarshalErr, nil, terrors.ErrBadResponse)
+				call.err = terrors.WrapWithCode(unmarshalErr, nil, terrors.ErrBadResponse).(*terrors.Error)
 			} else {
 				err := errRsp.Body().(*tperrors.Error)
 				call.err = terrors.Unmarshal(err)
@@ -188,7 +188,7 @@ func (c *client) performCall(call clientCall, middleware []ClientMiddleware, tra
 		} else if call.rspProto != nil {
 			rsp.SetBody(call.rspProto)
 			if err := c.unmarshaler(rsp, call.rspProto).UnmarshalPayload(rsp); err != nil {
-				call.err = terrors.WrapWithCode(err, nil, terrors.ErrBadResponse)
+				call.err = terrors.WrapWithCode(err, nil, terrors.ErrBadResponse).(*terrors.Error)
 			}
 		}
 

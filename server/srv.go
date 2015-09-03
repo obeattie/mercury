@@ -260,7 +260,11 @@ func (s *server) AddMiddleware(mw ServerMiddleware) {
 // know how to unmarshal these errors.
 func ErrorResponse(req mercury.Request, err error) mercury.Response {
 	rsp := req.Response(nil)
-	rsp.SetBody(terrors.Marshal(terrors.Wrap(err, nil)))
+	var terr *terrors.Error
+	if err != nil {
+		terr = terrors.Wrap(err, nil).(*terrors.Error)
+	}
+	rsp.SetBody(terrors.Marshal(terr))
 	if err := tmsg.ProtoMarshaler().MarshalBody(rsp); err != nil {
 		log.Errorf("[Mercury:Server] Failed to marshal error response: %v", err)
 		return nil // Not much we can do here
