@@ -108,7 +108,7 @@ func (suite *clientServerSuite) TestErrors() {
 		Request:  new(testproto.DummyRequest),
 		Response: new(testproto.DummyResponse),
 		Handler: func(req mercury.Request) (mercury.Response, error) {
-			return nil, terrors.BadRequest("naughty naughty")
+			return nil, terrors.BadRequest("", "naughty naughty", nil)
 		}})
 
 	cl := client.NewClient().

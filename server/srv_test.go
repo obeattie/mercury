@@ -120,7 +120,7 @@ func (suite *serverSuite) TestErrorResponse() {
 		Response: new(testproto.DummyResponse),
 		Handler: func(req mercury.Request) (mercury.Response, error) {
 			request := req.Body().(*testproto.DummyRequest)
-			return nil, terrors.NotFound(request.Ping)
+			return nil, terrors.NotFound("", request.Ping, nil)
 		}})
 
 	req := mercury.NewRequest()
