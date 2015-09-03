@@ -20,9 +20,9 @@ const (
 )
 
 var (
-	ErrAlreadyRunning   error = terrors.InternalService("", "Server is already running", nil)
-	ErrTransportClosed  error = terrors.InternalService("", "Transport closed", nil)
-	errEndpointNotFound       = terrors.BadRequest("", "Endpoint not found", nil)
+	ErrAlreadyRunning   error = terrors.InternalService("server_already_running", "Server is already running", nil)
+	ErrTransportClosed  error = terrors.InternalService("transport_closed", "Transport closed", nil)
+	errEndpointNotFound       = terrors.BadRequest("endpoint_not_found", "Endpoint not found", nil)
 	defaultMiddleware   []ServerMiddleware
 	defaultMiddlewareM  sync.RWMutex
 )

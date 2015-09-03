@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"strings"
 
 	terrors "github.com/mondough/typhon/errors"
 )
@@ -10,6 +11,20 @@ const (
 	errUidField      = "Client-Uid"
 	errServiceField  = "Client-Service"
 	errEndpointField = "Client-Endpoint"
+)
+
+var (
+	// used to work out which err to use when merging multiple. Lower number = higher priority
+	codePriority = map[string]int{
+		terrors.ErrUnknown:         0,
+		terrors.ErrInternalService: 1,
+		terrors.ErrBadRequest:      2,
+		terrors.ErrBadResponse:     3,
+		terrors.ErrForbidden:       4,
+		terrors.ErrUnauthorized:    5,
+		terrors.ErrNotFound:        6,
+		terrors.ErrTimeout:         7,
+	}
 )
 
 type ErrorSet []*terrors.Error
@@ -112,6 +127,20 @@ func (es ErrorSet) sanitiseContext(ctx map[string]string) {
 	delete(ctx, errEndpointField)
 }
 
+// returns true if this has higher priority than that
+func higherPriority(this, that string) bool {
+	// code priority is based on first part of the dotted code before the first dot
+	thisPr, ok := codePriority[strings.Split(this, ".")[0]]
+	if !ok {
+		thisPr = 1000
+	}
+	thatPr, ok := codePriority[strings.Split(that, ".")[0]]
+	if !ok {
+		thatPr = 1000
+	}
+	return thisPr < thatPr
+}
+
 // Combined returns a combined error from the set. If there is only one error, it is returned unmolested. If there are
 // more, they are all "flattened" into a single error. Where codes differ, they are normalised to that with the lowest
 // index.
@@ -129,10 +158,9 @@ func (es ErrorSet) Combined() error {
 
 		params := []map[string]string{}
 		for _, err := range es {
-			// TODO how do we replicate this flattening logic with string error codes
-			// if err.Code < result.Code {
-			result.Code = err.Code
-			// }
+			if higherPriority(err.Code, result.Code) {
+				result.Code = err.Code
+			}
 			params = append(params, err.Params)
 		}
 

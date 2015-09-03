@@ -149,3 +149,15 @@ func (suite *errorSetSuite) TestForUid() {
 func (suite *errorSetSuite) TestErrors() {
 	suite.Assert().Equal(suite.rawErrs, suite.errs.Errors())
 }
+
+func (suite *errorSetSuite) TestMultiErrorPriority() {
+	br := terrors.BadRequest("missing_param", "foo bar", nil)
+	is := terrors.InternalService("something_broke", "hello world", nil)
+	suite.Assert().True(higherPriority(is.Code, br.Code))
+	se := terrors.New("something_else", "baz", nil)
+	suite.Assert().True(higherPriority(is.Code, se.Code))
+	suite.Assert().True(higherPriority(br.Code, se.Code))
+
+	es := ErrorSet{se, is, br}
+	suite.Assert().Equal(is.Code, es.Combined().(*terrors.Error).Code)
+}
