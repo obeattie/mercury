@@ -50,7 +50,7 @@ func (e Endpoint) Handle(req mercury.Request) (rsp mercury.Response, err error) 
 			traceVerbose := make([]byte, 1024)
 			runtime.Stack(traceVerbose, true)
 			log.Criticalf("[Mercury:Server] Recovered from handler panic for request %s:\n%v\n%s", req.Id(), v, traceVerbose)
-			rsp, err = nil, terrors.InternalService("", "Unhandled exception in endpoint handler", nil)
+			rsp, err = nil, terrors.InternalService("unhandled_exception", "Unhandled exception in endpoint handler", nil)
 		}
 	}()
 	rsp, err = e.Handler(req)

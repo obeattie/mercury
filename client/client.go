@@ -225,7 +225,7 @@ func (c *client) exec() {
 			completedCallsC <- call
 			continue
 		} else if trans == nil {
-			call.err = terrors.InternalService("", "Client has no transport", nil)
+			call.err = terrors.InternalService("no_transport", "Client has no transport", nil)
 			completedCallsC <- call
 			continue
 		}
