@@ -186,7 +186,7 @@ func (suite *serverSuite) TestEndpointNotFound() {
 	suite.Assert().IsType(new(pe.Error), rsp.Body())
 	terr := terrors.Unmarshal(rsp.Body().(*pe.Error))
 	suite.Assert().Equal(terrors.ErrBadRequest+".endpoint_not_found", terr.Code)
-	suite.Assert().Contains("bad_request.endpoint_not_found", terr.Error())
+	suite.Assert().Contains(terr.Error(), "Endpoint not found")
 }
 
 // TestRegisteringInvalidEndpoint tests that appropriate panics are raised when registering invalid Endpoints
