@@ -214,12 +214,12 @@ func (c *client) performCall(call clientCall, middleware []ClientMiddleware, tra
 func (c *client) exec() {
 	defer close(c.doneC)
 
-	c.Lock()
+	c.RLock()
 	timeout := c.timeout
 	calls := c.calls // We don't need to make a copy as calls cannot be mutated once execution begins
 	trans := c.transport()
 	middleware := c.middleware
-	c.Unlock()
+	c.RUnlock()
 
 	completedCallsC := make(chan clientCall, len(calls))
 	for _, call := range calls {

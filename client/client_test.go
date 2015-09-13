@@ -329,3 +329,9 @@ func (suite *clientSuite) TestInvalidBody() {
 	suite.Require().Error(err)
 	suite.Assert().Equal(terrors.ErrBadRequest, err.Code)
 }
+
+// TestEmpty verifies that an empty call-set results in no errors
+func (suite *clientSuite) TestEmpty() {
+	cl := NewClient()
+	suite.Require().Empty(cl.Execute().Errors())
+}
