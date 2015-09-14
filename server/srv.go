@@ -20,9 +20,9 @@ const (
 )
 
 var (
-	ErrAlreadyRunning   error = terrors.InternalService("Server is already running")
-	ErrTransportClosed  error = terrors.InternalService("Transport closed")
-	errEndpointNotFound       = terrors.BadRequest("Endpoint not found")
+	ErrAlreadyRunning   error = terrors.InternalService("", "Server is already running", nil) // empty dotted code so impl details don't leak outside
+	ErrTransportClosed  error = terrors.InternalService("", "Transport closed", nil)
+	errEndpointNotFound       = terrors.BadRequest("endpoint_not_found", "Endpoint not found", nil)
 	defaultMiddleware   []ServerMiddleware
 	defaultMiddlewareM  sync.RWMutex
 )
@@ -227,7 +227,6 @@ func (s *server) handle(trans transport.Transport, req_ tmsg.Request) {
 			}
 		}
 	}
-
 	rsp = s.applyResponseMiddleware(rsp, req)
 	if rsp != nil {
 		trans.Respond(req, rsp)
@@ -261,7 +260,11 @@ func (s *server) AddMiddleware(mw ServerMiddleware) {
 // know how to unmarshal these errors.
 func ErrorResponse(req mercury.Request, err error) mercury.Response {
 	rsp := req.Response(nil)
-	rsp.SetBody(terrors.Marshal(terrors.Wrap(err)))
+	var terr *terrors.Error
+	if err != nil {
+		terr = terrors.Wrap(err, nil).(*terrors.Error)
+	}
+	rsp.SetBody(terrors.Marshal(terr))
 	if err := tmsg.ProtoMarshaler().MarshalBody(rsp); err != nil {
 		log.Errorf("[Mercury:Server] Failed to marshal error response: %v", err)
 		return nil // Not much we can do here

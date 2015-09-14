@@ -120,7 +120,7 @@ func (suite *serverSuite) TestErrorResponse() {
 		Response: new(testproto.DummyResponse),
 		Handler: func(req mercury.Request) (mercury.Response, error) {
 			request := req.Body().(*testproto.DummyRequest)
-			return nil, terrors.NotFound(request.Ping)
+			return nil, terrors.NotFound("", request.Ping, nil)
 		}})
 
 	req := mercury.NewRequest()
@@ -185,8 +185,8 @@ func (suite *serverSuite) TestEndpointNotFound() {
 	suite.Assert().NoError(tmsg.ProtoUnmarshaler(new(pe.Error)).UnmarshalPayload(rsp))
 	suite.Assert().IsType(new(pe.Error), rsp.Body())
 	terr := terrors.Unmarshal(rsp.Body().(*pe.Error))
-	suite.Assert().Equal(terrors.ErrBadRequest, terr.Code)
-	suite.Assert().Contains("Endpoint not found", terr.Error())
+	suite.Assert().Equal(terrors.ErrBadRequest+".endpoint_not_found", terr.Code)
+	suite.Assert().Contains(terr.Error(), "Endpoint not found")
 }
 
 // TestRegisteringInvalidEndpoint tests that appropriate panics are raised when registering invalid Endpoints

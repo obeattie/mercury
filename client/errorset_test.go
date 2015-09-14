@@ -22,24 +22,24 @@ func (suite *errorSetSuite) SetupTest() {
 	suite.rawErrs = map[string]*terrors.Error{}
 	suite.errs = nil
 
-	err := terrors.InternalService("uid1")
-	err.PrivateContext[errUidField] = "uid1"
-	err.PrivateContext[errServiceField] = "service.uid1"
-	err.PrivateContext[errEndpointField] = "uid1"
+	err := terrors.InternalService("", "uid1", nil)
+	err.Params[errUidField] = "uid1"
+	err.Params[errServiceField] = "service.uid1"
+	err.Params[errEndpointField] = "uid1"
 	suite.errs = append(suite.errs, err)
 	suite.rawErrs["uid1"] = err
 
-	err = terrors.InternalService("uid2")
-	err.PrivateContext[errUidField] = "uid2"
-	err.PrivateContext[errServiceField] = "service.uid2"
-	err.PrivateContext[errEndpointField] = "uid2"
+	err = terrors.InternalService("", "uid2", nil)
+	err.Params[errUidField] = "uid2"
+	err.Params[errServiceField] = "service.uid2"
+	err.Params[errEndpointField] = "uid2"
 	suite.errs = append(suite.errs, err)
 	suite.rawErrs["uid2"] = err
 
-	err = terrors.InternalService("uid3")
-	err.PrivateContext[errUidField] = "uid3"
-	err.PrivateContext[errServiceField] = "service.uid2" // Same service as uid2
-	err.PrivateContext[errEndpointField] = "uid3"
+	err = terrors.InternalService("", "uid3", nil)
+	err.Params[errUidField] = "uid3"
+	err.Params[errServiceField] = "service.uid2" // Same service as uid2
+	err.Params[errEndpointField] = "uid3"
 	suite.errs = append(suite.errs, err)
 	suite.rawErrs["uid3"] = err
 }
@@ -148,4 +148,16 @@ func (suite *errorSetSuite) TestForUid() {
 
 func (suite *errorSetSuite) TestErrors() {
 	suite.Assert().Equal(suite.rawErrs, suite.errs.Errors())
+}
+
+func (suite *errorSetSuite) TestMultiErrorPriority() {
+	br := terrors.BadRequest("missing_param", "foo bar", nil)
+	is := terrors.InternalService("something_broke", "hello world", nil)
+	suite.Assert().True(higherPriority(is.Code, br.Code))
+	se := terrors.New("something_else", "baz", nil)
+	suite.Assert().True(higherPriority(is.Code, se.Code))
+	suite.Assert().True(higherPriority(br.Code, se.Code))
+
+	es := ErrorSet{se, is, br}
+	suite.Assert().Equal(is.Code, es.Combined().(*terrors.Error).Code)
 }

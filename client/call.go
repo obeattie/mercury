@@ -50,9 +50,7 @@ func (c Call) Request() (mercury.Request, error) {
 	if c.Body != nil {
 		req.SetBody(c.Body)
 		if err := c.marshaler().MarshalBody(req); err != nil {
-			terr := terrors.Wrap(err)
-			terr.Code = terrors.ErrBadRequest
-			return nil, terr
+			return nil, terrors.WrapWithCode(err, nil, terrors.ErrBadRequest)
 		}
 	}
 	return req, nil

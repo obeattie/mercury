@@ -35,10 +35,11 @@ func (e Endpoint) Handle(req mercury.Request) (rsp mercury.Response, err error) 
 	// Unmarshal the request body (unless there already is one)
 	if req.Body() == nil && e.Request != nil {
 		if um := e.unmarshaler(req); um != nil {
-			if err_ := terrors.Wrap(um.UnmarshalPayload(req)); err_ != nil {
-				log.Warnf("[Mercury:Server] Cannot unmarshal request payload: %v", err)
-				err_.Code = terrors.ErrBadRequest
-				rsp, err = nil, err_
+			if werr := terrors.Wrap(um.UnmarshalPayload(req), nil); werr != nil {
+				log.Warnf("[Mercury:Server] Cannot unmarshal request payload: %v", werr)
+				terr := werr.(*terrors.Error)
+				terr.Code = terrors.ErrBadRequest
+				rsp, err = nil, terr
 				return
 			}
 		}
@@ -49,7 +50,7 @@ func (e Endpoint) Handle(req mercury.Request) (rsp mercury.Response, err error) 
 			traceVerbose := make([]byte, 1024)
 			runtime.Stack(traceVerbose, true)
 			log.Criticalf("[Mercury:Server] Recovered from handler panic for request %s:\n%v\n%s", req.Id(), v, traceVerbose)
-			rsp, err = nil, terrors.InternalService("Unhandled exception in endpoint handler")
+			rsp, err = nil, terrors.InternalService("unhandled_exception", "Unhandled exception in endpoint handler", nil)
 		}
 	}()
 	rsp, err = e.Handler(req)

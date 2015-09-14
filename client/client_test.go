@@ -70,9 +70,10 @@ func (suite *clientSuite) SetupSuite() {
 					suite.Require().NoError(trans.Respond(req, rsp))
 
 				case "error":
-					err := terrors.BadRequest("foo bar")
+					err := terrors.BadRequest("", "foo bar", nil)
 					rsp := req.Response(terrors.Marshal(err))
 					rsp.SetHeaders(req.Headers())
+					rsp.SetIsError(true)
 					suite.Require().NoError(trans.Respond(req, rsp))
 
 				case "bulls--t":
@@ -213,7 +214,6 @@ func (suite *clientSuite) TestMiddleware() {
 	// ProcessClientResponse should have set X-Boop: Boop
 	suite.Assert().Equal("Boop", rsp.Headers()["X-Boop"])
 	suite.Assert().Nil(mw.err)
-
 	client = NewClient().
 		AddMiddleware(mw).
 		Add(
