@@ -53,7 +53,7 @@ func (e Endpoint) Handle(req mercury.Request) (rsp mercury.Response, err error) 
 			log.Criticalf("[Mercury:Server] Recovered from handler panic for request %s:\n%v\n%s", req.Id(), v,
 				string(traceVerbose))
 			rsp, err = nil, terrors.InternalService("panic", fmt.Sprintf("Panic in handler %s:\n%s", req.Endpoint(),
-				string(traceVerbose)))
+				string(traceVerbose)), nil)
 		}
 	}()
 	rsp, err = e.Handler(req)
