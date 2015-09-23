@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"runtime"
 
 	log "github.com/cihub/seelog"
@@ -49,8 +50,10 @@ func (e Endpoint) Handle(req mercury.Request) (rsp mercury.Response, err error) 
 		if v := recover(); v != nil {
 			traceVerbose := make([]byte, 1024)
 			runtime.Stack(traceVerbose, true)
-			log.Criticalf("[Mercury:Server] Recovered from handler panic for request %s:\n%v\n%s", req.Id(), v, traceVerbose)
-			rsp, err = nil, terrors.InternalService("unhandled_exception", "Unhandled exception in endpoint handler", nil)
+			log.Criticalf("[Mercury:Server] Recovered from handler panic for request %s:\n%v\n%s", req.Id(), v,
+				string(traceVerbose))
+			rsp, err = nil, terrors.InternalService("panic", fmt.Sprintf("Panic in handler %s:\n%s", req.Endpoint(),
+				string(traceVerbose)), nil)
 		}
 	}()
 	rsp, err = e.Handler(req)
