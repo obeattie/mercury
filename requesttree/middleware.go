@@ -33,11 +33,12 @@ func (m requestTreeMiddleware) ProcessClientRequest(req mercury.Request) mercury
 	return req
 }
 
-func (m requestTreeMiddleware) ProcessClientResponse(rsp mercury.Response, ctx context.Context) mercury.Response {
+func (m requestTreeMiddleware) ProcessClientResponse(rsp mercury.Response, req mercury.Request) mercury.Response {
 	return rsp
 }
 
-func (m requestTreeMiddleware) ProcessClientError(err *terrors.Error, ctx context.Context) {}
+func (m requestTreeMiddleware) ProcessClientError(err *terrors.Error, req mercury.Request) {
+}
 
 func (m requestTreeMiddleware) ProcessServerRequest(req mercury.Request) (mercury.Request, mercury.Response) {
 	req.SetContext(context.WithValue(req.Context(), reqIdCtxKey, req.Id()))
@@ -56,8 +57,8 @@ func (m requestTreeMiddleware) ProcessServerRequest(req mercury.Request) (mercur
 	return req, nil
 }
 
-func (m requestTreeMiddleware) ProcessServerResponse(rsp mercury.Response, ctx context.Context) mercury.Response {
-	if v, ok := ctx.Value(parentIdCtxKey).(string); ok && v != "" && rsp != nil {
+func (m requestTreeMiddleware) ProcessServerResponse(rsp mercury.Response, req mercury.Request) mercury.Response {
+	if v, ok := req.Value(parentIdCtxKey).(string); ok && v != "" && rsp != nil {
 		rsp.SetHeader(parentIdHeader, v)
 	}
 	return rsp
