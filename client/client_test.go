@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 
 	"github.com/mondough/mercury"
 	"github.com/mondough/mercury/marshaling"
@@ -181,12 +180,12 @@ func (m *testMw) ProcessClientRequest(req mercury.Request) mercury.Request {
 	return req
 }
 
-func (m *testMw) ProcessClientResponse(rsp mercury.Response, ctx context.Context) mercury.Response {
+func (m *testMw) ProcessClientResponse(rsp mercury.Response, req mercury.Request) mercury.Response {
 	rsp.SetHeader("X-Boop", "Boop")
 	return rsp
 }
 
-func (m *testMw) ProcessClientError(err *terrors.Error, ctx context.Context) {
+func (m *testMw) ProcessClientError(err *terrors.Error, req mercury.Request) {
 	m.err = err
 }
 
