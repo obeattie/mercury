@@ -57,8 +57,8 @@ func (m requestTreeMiddleware) ProcessServerRequest(req mercury.Request) (mercur
 	return req, nil
 }
 
-func (m requestTreeMiddleware) ProcessServerResponse(rsp mercury.Response, ctx context.Context) mercury.Response {
-	if v, ok := ctx.Value(parentIdCtxKey).(string); ok && v != "" && rsp != nil {
+func (m requestTreeMiddleware) ProcessServerResponse(rsp mercury.Response, req mercury.Request) mercury.Response {
+	if v, ok := req.Value(parentIdCtxKey).(string); ok && v != "" && rsp != nil {
 		rsp.SetHeader(parentIdHeader, v)
 	}
 	return rsp

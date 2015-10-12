@@ -5,7 +5,6 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
-	"golang.org/x/net/context"
 	"gopkg.in/tomb.v2"
 
 	"github.com/mondough/mercury"
@@ -194,13 +193,13 @@ func (s *server) applyRequestMiddleware(req mercury.Request) (mercury.Request, m
 	return req, nil
 }
 
-func (s *server) applyResponseMiddleware(rsp mercury.Response, ctx context.Context) mercury.Response {
+func (s *server) applyResponseMiddleware(rsp mercury.Response, req mercury.Request) mercury.Response {
 	s.middlewareM.RLock()
 	mws := s.middleware
 	s.middlewareM.RUnlock()
 	for i := len(mws) - 1; i >= 0; i-- { // reverse order
 		mw := mws[i]
-		rsp = mw.ProcessServerResponse(rsp, ctx)
+		rsp = mw.ProcessServerResponse(rsp, req)
 	}
 	return rsp
 }
