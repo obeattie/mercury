@@ -97,13 +97,11 @@ func (suite *serverSuite) TestRouting() {
 	suite.Assert().NoError(tmsg.ProtoMarshaler().MarshalBody(req))
 
 	rsp, err := suite.trans.Send(req, time.Second)
-	suite.Assert().NoError(err)
-	suite.Assert().NotNil(rsp)
-	suite.Assert().Equal(req.Service(), rsp.Service())
-	suite.Assert().Equal(req.Endpoint(), rsp.Endpoint())
+	suite.Require().NoError(err)
+	suite.Require().NotNil(rsp)
 
 	suite.Assert().NoError(tmsg.ProtoUnmarshaler(new(testproto.DummyResponse)).UnmarshalPayload(rsp))
-	suite.Assert().NotNil(rsp.Body())
+	suite.Require().NotNil(rsp.Body())
 	suite.Assert().IsType(new(testproto.DummyResponse), rsp.Body())
 	response := rsp.Body().(*testproto.DummyResponse)
 	suite.Assert().Equal("routing", response.Pong)

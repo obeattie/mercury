@@ -33,8 +33,6 @@ type Request interface {
 func responseFromRequest(req Request, body interface{}) Response {
 	rsp := NewResponse()
 	rsp.SetId(req.Id())
-	rsp.SetService(req.Service())
-	rsp.SetEndpoint(req.Endpoint())
 	if body != nil {
 		rsp.SetBody(body)
 
