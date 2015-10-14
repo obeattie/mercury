@@ -99,6 +99,8 @@ func (suite *clientServerSuite) TestE2E() {
 	suite.Assert().NotNil(rsp)
 	response := rsp.Body().(*testproto.DummyResponse)
 	suite.Assert().Equal("teste2e", response.Pong)
+	suite.Assert().False(rsp.IsError())
+	suite.Assert().Nil(rsp.Error())
 }
 
 // TestErrors verifies that an error sent from a handler is correctly returned by a client
@@ -127,8 +129,18 @@ func (suite *clientServerSuite) TestErrors() {
 
 	suite.Assert().True(cl.Errors().Any())
 	err := cl.Errors().ForUid("call")
-	suite.Assert().NotNil(err)
+	suite.Require().NotNil(err)
 	suite.Assert().Equal(terrors.ErrBadRequest, err.Code)
+
+	rsp := mercury.FromTyphonResponse(cl.Response("call").Copy())
+	rsp.SetBody("FOO") // Deliberately set this to verify it is not mutated while accessing the error
+	suite.Require().NotNil(rsp)
+	suite.Assert().True(rsp.IsError())
+	suite.Assert().NotNil(rsp.Error())
+	suite.Assert().IsType(&terrors.Error{}, rsp.Error())
+	err = rsp.Error().(*terrors.Error)
+	suite.Assert().Equal(terrors.ErrBadRequest, err.Code)
+	suite.Assert().Equal("FOO", rsp.Body())
 }
 
 // TestJSON verifies a JSON request and response can be received from a protobuf handler
