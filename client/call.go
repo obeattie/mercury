@@ -11,7 +11,7 @@ import (
 
 // A Call is a convenient way to form a Request for an RPC call.
 type Call struct {
-	// Uid represents a unique identifier for this call; it is used.
+	// Uid represents a unique identifier for this call within the scope of a client.
 	Uid string
 	// Service to receive the call.
 	Service string
