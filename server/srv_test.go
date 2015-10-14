@@ -188,7 +188,9 @@ func (suite *serverSuite) TestEndpointNotFound() {
 }
 
 // TestRegisteringInvalidEndpoint tests that appropriate panics are raised when registering invalid Endpoints
-func (suite *serverSuite) TestRegisteringInvalidEndpoint() {}
+func (suite *serverSuite) TestRegisteringInvalidEndpoint() {
+	suite.T().Skip("Not implemented") // @TODO
+}
 
 // TestRoutingParallel sends a bunch of requests in parallel to different endpoints and checks that the responses match
 // correctly. 200 workers, 100 requests each.
