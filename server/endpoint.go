@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
 	"runtime"
 
@@ -50,11 +51,15 @@ func (e Endpoint) Handle(req mercury.Request) (rsp mercury.Response, err error) 
 		if v := recover(); v != nil {
 			traceVerbose := make([]byte, 8000)
 			runtime.Stack(traceVerbose, true)
-			log.Criticalf("[Mercury:Server] Recovered from handler panic for request %s:\n%v\n%s", req.Id(), v,
 			traceVerbose = bytes.TrimRight(traceVerbose, "\x00") // Remove trailing nuls (runtime.Stack is derpy)
+			log.Criticalf("[Mercury:Server] Recovered from handler panic for request %s: %v\n\n%s", req.Id(), v,
 				string(traceVerbose))
-			rsp, err = nil, terrors.InternalService("panic", fmt.Sprintf("Panic in handler %s:\n%s", req.Endpoint(),
-				string(traceVerbose)), nil)
+			rsp, err = nil, terrors.InternalService(
+				"panic",
+				fmt.Sprintf("Panic in handler %s: %v\n\n%s", req.Endpoint(), v, string(traceVerbose)),
+				map[string]string{
+					"err":   fmt.Sprintf("%v", v),
+					"stack": string(traceVerbose)})
 		}
 	}()
 	rsp, err = e.Handler(req)

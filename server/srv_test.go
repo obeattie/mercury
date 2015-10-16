@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"math/rand"
 	"sync"
 	"testing"
@@ -100,9 +101,9 @@ func (suite *serverSuite) TestRouting() {
 	suite.Require().NoError(err)
 	suite.Require().NotNil(rsp)
 
-	suite.Assert().NoError(tmsg.ProtoUnmarshaler(new(testproto.DummyResponse)).UnmarshalPayload(rsp))
+	suite.Require().NoError(tmsg.ProtoUnmarshaler(new(testproto.DummyResponse)).UnmarshalPayload(rsp))
 	suite.Require().NotNil(rsp.Body())
-	suite.Assert().IsType(new(testproto.DummyResponse), rsp.Body())
+	suite.Require().IsType(new(testproto.DummyResponse), rsp.Body())
 	response := rsp.Body().(*testproto.DummyResponse)
 	suite.Assert().Equal("routing", response.Pong)
 	suite.Assert().Equal("routing", rsp.Headers()["X-Ping-Pong"])
@@ -137,8 +138,43 @@ func (suite *serverSuite) TestErrorResponse() {
 	errResponse := &pe.Error{}
 	suite.Assert().NoError(proto.Unmarshal(rsp.Payload(), errResponse))
 	terr := terrors.Unmarshal(errResponse)
+	suite.Require().NotNil(terr)
 	suite.Assert().Equal("Foo bar baz", terr.Message, string(rsp.Payload()))
 	suite.Assert().Equal(terrors.ErrNotFound, terr.Code)
+}
+
+// TestPanicResponse tests that panics result in an appropriate internal service error with the panic stack in the
+// error context.
+func (suite *serverSuite) TestPanicResponse() {
+	srv := suite.server
+	srv.AddEndpoints(Endpoint{
+		Name:     "panic",
+		Request:  new(testproto.DummyRequest),
+		Response: new(testproto.DummyResponse),
+		Handler: func(req mercury.Request) (mercury.Response, error) {
+			panic("FOOBARBAZ")
+			return nil, nil
+		}})
+
+	req := mercury.NewRequest()
+	req.SetService(testServiceName)
+	req.SetEndpoint("panic")
+	req.SetBody(&testproto.DummyRequest{})
+	suite.Assert().NoError(tmsg.ProtoMarshaler().MarshalBody(req))
+
+	rsp_, err := suite.trans.Send(req, time.Second)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(rsp_)
+	rsp := mercury.FromTyphonResponse(rsp_)
+	suite.Assert().True(rsp.IsError())
+
+	errResponse := &pe.Error{}
+	suite.Assert().NoError(proto.Unmarshal(rsp.Payload(), errResponse))
+	terr := terrors.Unmarshal(errResponse)
+	suite.Require().NotNil(terr)
+	suite.Assert().Equal(fmt.Sprintf("%s.panic", terrors.ErrInternalService), terr.Code)
+	suite.Assert().Equal(terr.Params["err"], "FOOBARBAZ")
+	suite.Assert().Contains(terr.Params["stack"], "goroutine") // All traces contain "goroutine x:" lines
 }
 
 // TestNilResponse tests that a nil response correctly returns a Response with an empty payload to the caller
@@ -159,8 +195,8 @@ func (suite *serverSuite) TestNilResponse() {
 	req.SetEndpoint("nil")
 
 	rsp, err := suite.trans.Send(req, time.Second)
-	suite.Assert().NoError(err)
-	suite.Assert().NotNil(rsp)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(rsp)
 	suite.Assert().Len(rsp.Payload(), 0)
 }
 
@@ -176,8 +212,8 @@ func (suite *serverSuite) TestEndpointNotFound() {
 
 	rsp_, err := suite.trans.Send(req, time.Second)
 	rsp := mercury.FromTyphonResponse(rsp_)
-	suite.Assert().NoError(err)
-	suite.Assert().NotNil(rsp)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(rsp)
 	suite.Assert().True(rsp.IsError())
 
 	suite.Assert().NoError(tmsg.ProtoUnmarshaler(new(pe.Error)).UnmarshalPayload(rsp))
@@ -240,9 +276,9 @@ func (suite *serverSuite) TestRoutingParallel() {
 			suite.Assert().NoError(tmsg.ProtoMarshaler().MarshalBody(req))
 
 			rsp, err := suite.trans.Send(req, time.Second)
-			suite.Assert().NoError(err)
-			suite.Assert().NotNil(rsp)
-			suite.Assert().NoError(unmarshaler.UnmarshalPayload(rsp))
+			suite.Require().NoError(err)
+			suite.Require().NotNil(rsp)
+			suite.Require().NoError(unmarshaler.UnmarshalPayload(rsp))
 			response := rsp.Body().(*testproto.DummyResponse)
 			suite.Assert().Equal(ep, response.Pong)
 		}
@@ -278,8 +314,8 @@ func (suite *serverSuite) TestJSONResponse() {
 	suite.Assert().NoError(tmsg.JSONMarshaler().MarshalBody(req))
 
 	rsp, err := suite.trans.Send(req, time.Second)
-	suite.Assert().NoError(err)
-	suite.Assert().NotNil(rsp)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(rsp)
 
 	suite.Assert().Equal("application/json", rsp.Headers()[marshaling.ContentTypeHeader])
 	suite.Assert().Equal(`{"pong":"json"}`, string(rsp.Payload()))
