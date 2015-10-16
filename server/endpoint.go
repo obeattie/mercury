@@ -48,9 +48,10 @@ func (e Endpoint) Handle(req mercury.Request) (rsp mercury.Response, err error) 
 
 	defer func() {
 		if v := recover(); v != nil {
-			traceVerbose := make([]byte, 1024)
+			traceVerbose := make([]byte, 8000)
 			runtime.Stack(traceVerbose, true)
 			log.Criticalf("[Mercury:Server] Recovered from handler panic for request %s:\n%v\n%s", req.Id(), v,
+			traceVerbose = bytes.TrimRight(traceVerbose, "\x00") // Remove trailing nuls (runtime.Stack is derpy)
 				string(traceVerbose))
 			rsp, err = nil, terrors.InternalService("panic", fmt.Sprintf("Panic in handler %s:\n%s", req.Endpoint(),
 				string(traceVerbose)), nil)
