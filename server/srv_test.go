@@ -153,7 +153,6 @@ func (suite *serverSuite) TestPanicResponse() {
 		Response: new(testproto.DummyResponse),
 		Handler: func(req mercury.Request) (mercury.Response, error) {
 			panic("FOOBARBAZ")
-			return nil, nil
 		}})
 
 	req := mercury.NewRequest()
