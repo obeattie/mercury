@@ -1,14 +1,16 @@
 package server
 
 import (
+	"bytes"
+	"fmt"
 	"runtime"
 
 	log "github.com/cihub/seelog"
-	terrors "github.com/mondough/typhon/errors"
+	"github.com/mondough/terrors"
 	tmsg "github.com/mondough/typhon/message"
 
-	"github.com/obeattie/mercury"
-	"github.com/obeattie/mercury/marshaling"
+	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/marshaling"
 )
 
 type Handler func(req mercury.Request) (mercury.Response, error)
@@ -35,10 +37,11 @@ func (e Endpoint) Handle(req mercury.Request) (rsp mercury.Response, err error) 
 	// Unmarshal the request body (unless there already is one)
 	if req.Body() == nil && e.Request != nil {
 		if um := e.unmarshaler(req); um != nil {
-			if err_ := terrors.Wrap(um.UnmarshalPayload(req)); err_ != nil {
-				log.Warnf("[Mercury:Server] Cannot unmarshal request payload: %v", err)
-				err_.Code = terrors.ErrBadRequest
-				rsp, err = nil, err_
+			if werr := terrors.Wrap(um.UnmarshalPayload(req), nil); werr != nil {
+				log.Warnf("[Mercury:Server] Cannot unmarshal request payload: %v", werr)
+				terr := werr.(*terrors.Error)
+				terr.Code = terrors.ErrBadRequest
+				rsp, err = nil, terr
 				return
 			}
 		}
@@ -46,10 +49,17 @@ func (e Endpoint) Handle(req mercury.Request) (rsp mercury.Response, err error) 
 
 	defer func() {
 		if v := recover(); v != nil {
-			traceVerbose := make([]byte, 1024)
+			traceVerbose := make([]byte, 8000)
 			runtime.Stack(traceVerbose, true)
-			log.Criticalf("[Mercury:Server] Recovered from handler panic for request %s:\n%v\n%s", req.Id(), v, traceVerbose)
-			rsp, err = nil, terrors.InternalService("Unhandled exception in endpoint handler")
+			traceVerbose = bytes.TrimRight(traceVerbose, "\x00") // Remove trailing nuls (runtime.Stack is derpy)
+			log.Criticalf("[Mercury:Server] Recovered from handler panic for request %s: %v\n\n%s", req.Id(), v,
+				string(traceVerbose))
+			rsp, err = nil, terrors.InternalService(
+				"panic",
+				fmt.Sprintf("Panic in handler %s: %v\n\n%s", req.Endpoint(), v, string(traceVerbose)),
+				map[string]string{
+					"err":   fmt.Sprintf("%v", v),
+					"stack": string(traceVerbose)})
 		}
 	}()
 	rsp, err = e.Handler(req)

@@ -3,15 +3,15 @@ package client
 import (
 	"golang.org/x/net/context"
 
-	terrors "github.com/mondough/typhon/errors"
+	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/marshaling"
+	"github.com/mondough/terrors"
 	tmsg "github.com/mondough/typhon/message"
-	"github.com/obeattie/mercury"
-	"github.com/obeattie/mercury/marshaling"
 )
 
 // A Call is a convenient way to form a Request for an RPC call.
 type Call struct {
-	// Uid represents a unique identifier for this call; it is used.
+	// Uid represents a unique identifier for this call within the scope of a client.
 	Uid string
 	// Service to receive the call.
 	Service string
@@ -50,9 +50,7 @@ func (c Call) Request() (mercury.Request, error) {
 	if c.Body != nil {
 		req.SetBody(c.Body)
 		if err := c.marshaler().MarshalBody(req); err != nil {
-			terr := terrors.Wrap(err)
-			terr.Code = terrors.ErrBadRequest
-			return nil, terr
+			return nil, terrors.WrapWithCode(err, nil, terrors.ErrBadRequest)
 		}
 	}
 	return req, nil

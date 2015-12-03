@@ -6,16 +6,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 
-	terrors "github.com/mondough/typhon/errors"
+	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/marshaling"
+	"github.com/mondough/mercury/testproto"
+	"github.com/mondough/mercury/transport"
+	"github.com/mondough/terrors"
 	tmsg "github.com/mondough/typhon/message"
 	"github.com/mondough/typhon/mock"
 	"github.com/mondough/typhon/rabbit"
-	"github.com/obeattie/mercury"
-	"github.com/obeattie/mercury/marshaling"
-	"github.com/obeattie/mercury/testproto"
-	"github.com/obeattie/mercury/transport"
 )
 
 const testServiceName = "service.client-example"
@@ -70,9 +69,10 @@ func (suite *clientSuite) SetupSuite() {
 					suite.Require().NoError(trans.Respond(req, rsp))
 
 				case "error":
-					err := terrors.BadRequest("foo bar")
+					err := terrors.BadRequest("", "foo bar", nil)
 					rsp := req.Response(terrors.Marshal(err))
 					rsp.SetHeaders(req.Headers())
+					rsp.SetIsError(true)
 					suite.Require().NoError(trans.Respond(req, rsp))
 
 				case "bulls--t":
@@ -180,12 +180,12 @@ func (m *testMw) ProcessClientRequest(req mercury.Request) mercury.Request {
 	return req
 }
 
-func (m *testMw) ProcessClientResponse(rsp mercury.Response, ctx context.Context) mercury.Response {
+func (m *testMw) ProcessClientResponse(rsp mercury.Response, req mercury.Request) mercury.Response {
 	rsp.SetHeader("X-Boop", "Boop")
 	return rsp
 }
 
-func (m *testMw) ProcessClientError(err *terrors.Error, ctx context.Context) {
+func (m *testMw) ProcessClientError(err *terrors.Error, req mercury.Request) {
 	m.err = err
 }
 
@@ -213,7 +213,6 @@ func (suite *clientSuite) TestMiddleware() {
 	// ProcessClientResponse should have set X-Boop: Boop
 	suite.Assert().Equal("Boop", rsp.Headers()["X-Boop"])
 	suite.Assert().Nil(mw.err)
-
 	client = NewClient().
 		AddMiddleware(mw).
 		Add(
@@ -328,4 +327,10 @@ func (suite *clientSuite) TestInvalidBody() {
 	err := cl.Execute().Errors().ForUid("call")
 	suite.Require().Error(err)
 	suite.Assert().Equal(terrors.ErrBadRequest, err.Code)
+}
+
+// TestEmpty verifies that an empty call-set results in no errors
+func (suite *clientSuite) TestEmpty() {
+	cl := NewClient()
+	suite.Require().Empty(cl.Execute().Errors())
 }

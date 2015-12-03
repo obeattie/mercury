@@ -2,14 +2,29 @@ package client
 
 import (
 	"fmt"
+	"strings"
 
-	terrors "github.com/mondough/typhon/errors"
+	"github.com/mondough/terrors"
 )
 
 const (
 	errUidField      = "Client-Uid"
 	errServiceField  = "Client-Service"
 	errEndpointField = "Client-Endpoint"
+)
+
+var (
+	// used to work out which err to use when merging multiple. Lower number = higher priority
+	codePriority = map[string]int{
+		terrors.ErrUnknown:         0,
+		terrors.ErrInternalService: 1,
+		terrors.ErrBadRequest:      2,
+		terrors.ErrBadResponse:     3,
+		terrors.ErrForbidden:       4,
+		terrors.ErrUnauthorized:    5,
+		terrors.ErrNotFound:        6,
+		terrors.ErrTimeout:         7,
+	}
 )
 
 type ErrorSet []*terrors.Error
@@ -24,7 +39,7 @@ func (es ErrorSet) Copy() ErrorSet {
 // ForUid returns the error for a given request uid (or nil)
 func (es ErrorSet) ForUid(uid string) *terrors.Error {
 	for _, e := range es {
-		if euid, ok := e.PrivateContext[errUidField]; ok && euid == uid {
+		if euid, ok := e.Params[errUidField]; ok && euid == uid {
 			return e
 		}
 	}
@@ -40,17 +55,17 @@ func (es ErrorSet) Any() bool {
 func (es ErrorSet) Errors() map[string]*terrors.Error {
 	result := make(map[string]*terrors.Error, len(es)) // Never return nil; with a map it's just fraught
 	for _, err := range es {
-		result[err.PrivateContext[errUidField]] = err
+		result[err.Params[errUidField]] = err
 	}
 	return result
 }
 
 // IgnoreCode returns a new ErrorSet without errors of the given codes
-func (es ErrorSet) IgnoreCode(codes ...int) ErrorSet {
+func (es ErrorSet) IgnoreCode(codes ...string) ErrorSet {
 	if len(codes) == 0 {
 		return es
 	}
-	codesMap := make(map[int]struct{}, len(codes))
+	codesMap := make(map[string]struct{}, len(codes))
 	for _, c := range codes {
 		codesMap[c] = struct{}{}
 	}
@@ -68,7 +83,7 @@ func (es ErrorSet) IgnoreCode(codes ...int) ErrorSet {
 func (es ErrorSet) IgnoreEndpoint(service, endpoint string) ErrorSet {
 	result := make(ErrorSet, 0, len(es)-1)
 	for _, err := range es {
-		if !(err.PrivateContext[errServiceField] == service && err.PrivateContext[errEndpointField] == endpoint) {
+		if !(err.Params[errServiceField] == service && err.Params[errEndpointField] == endpoint) {
 			result = append(result, err)
 		}
 	}
@@ -83,7 +98,7 @@ func (es ErrorSet) IgnoreService(services ...string) ErrorSet {
 	servicesMap := stringsMap(services...)
 	result := make(ErrorSet, 0, len(es)-len(services))
 	for _, err := range es {
-		if _, excluded := servicesMap[err.PrivateContext[errServiceField]]; !excluded {
+		if _, excluded := servicesMap[err.Params[errServiceField]]; !excluded {
 			result = append(result, err)
 		}
 	}
@@ -98,7 +113,7 @@ func (es ErrorSet) IgnoreUid(uids ...string) ErrorSet {
 	uidsMap := stringsMap(uids...)
 	result := make(ErrorSet, 0, len(es)-len(uids))
 	for _, err := range es {
-		if _, excluded := uidsMap[err.PrivateContext[errUidField]]; !excluded {
+		if _, excluded := uidsMap[err.Params[errUidField]]; !excluded {
 			result = append(result, err)
 		}
 	}
@@ -110,6 +125,20 @@ func (es ErrorSet) sanitiseContext(ctx map[string]string) {
 	delete(ctx, errUidField)
 	delete(ctx, errServiceField)
 	delete(ctx, errEndpointField)
+}
+
+// returns true if this has higher priority than that
+func higherPriority(this, that string) bool {
+	// code priority is based on first part of the dotted code before the first dot
+	thisPr, ok := codePriority[strings.Split(this, ".")[0]]
+	if !ok {
+		thisPr = 1000
+	}
+	thatPr, ok := codePriority[strings.Split(that, ".")[0]]
+	if !ok {
+		thatPr = 1000
+	}
+	return thisPr < thatPr
 }
 
 // Combined returns a combined error from the set. If there is only one error, it is returned unmolested. If there are
@@ -125,20 +154,18 @@ func (es ErrorSet) Combined() error {
 
 	default:
 		msg := fmt.Sprintf("%s, and %d more errors", es[0].Message, len(es)-1)
-		result := terrors.New(es[0].Code, msg, nil, nil)
+		result := terrors.New(es[0].Code, msg, nil)
 
-		privateContexts, publicContexts := []map[string]string(nil), []map[string]string(nil)
+		params := []map[string]string{}
 		for _, err := range es {
-			if err.Code < result.Code {
+			if higherPriority(err.Code, result.Code) {
 				result.Code = err.Code
 			}
-			privateContexts = append(privateContexts, err.PrivateContext)
-			publicContexts = append(publicContexts, err.PublicContext)
+			params = append(params, err.Params)
 		}
 
-		result.PrivateContext = mergeContexts(privateContexts...)
-		result.PublicContext = mergeContexts(publicContexts...)
-		es.sanitiseContext(result.PrivateContext)
+		result.Params = mergeContexts(params...)
+		es.sanitiseContext(result.Params)
 		return result
 	}
 }

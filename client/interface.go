@@ -3,10 +3,9 @@ package client
 import (
 	"time"
 
-	terrors "github.com/mondough/typhon/errors"
-	"github.com/obeattie/mercury"
-	"github.com/obeattie/mercury/transport"
-	"golang.org/x/net/context"
+	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/transport"
+	"github.com/mondough/terrors"
 )
 
 // A Client is a convenient way to make Requests (potentially in parallel) and access their Responses/Errors.
@@ -59,9 +58,9 @@ type ClientMiddleware interface {
 	// returns an error, ProcessClientError is invoked instead of this method for that request.
 	//
 	// Note that response middleware are applied in reverse order.
-	ProcessClientResponse(rsp mercury.Response, ctx context.Context) mercury.Response
+	ProcessClientResponse(rsp mercury.Response, req mercury.Request) mercury.Response
 	// ProcessClientError is called whenever a remote call results in an error (either local or remote).
 	//
 	// Note that error middleware are applied in reverse order.
-	ProcessClientError(err *terrors.Error, ctx context.Context)
+	ProcessClientError(err *terrors.Error, req mercury.Request)
 }

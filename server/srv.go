@@ -5,14 +5,13 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
-	"golang.org/x/net/context"
 	"gopkg.in/tomb.v2"
 
-	terrors "github.com/mondough/typhon/errors"
+	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/transport"
+	"github.com/mondough/terrors"
 	tmsg "github.com/mondough/typhon/message"
 	ttrans "github.com/mondough/typhon/transport"
-	"github.com/obeattie/mercury"
-	"github.com/obeattie/mercury/transport"
 )
 
 const (
@@ -20,9 +19,9 @@ const (
 )
 
 var (
-	ErrAlreadyRunning   error = terrors.InternalService("Server is already running")
-	ErrTransportClosed  error = terrors.InternalService("Transport closed")
-	errEndpointNotFound       = terrors.BadRequest("Endpoint not found")
+	ErrAlreadyRunning   error = terrors.InternalService("", "Server is already running", nil) // empty dotted code so impl details don't leak outside
+	ErrTransportClosed  error = terrors.InternalService("", "Transport closed", nil)
+	errEndpointNotFound       = terrors.BadRequest("endpoint_not_found", "Endpoint not found", nil)
 	defaultMiddleware   []ServerMiddleware
 	defaultMiddlewareM  sync.RWMutex
 )
@@ -194,13 +193,13 @@ func (s *server) applyRequestMiddleware(req mercury.Request) (mercury.Request, m
 	return req, nil
 }
 
-func (s *server) applyResponseMiddleware(rsp mercury.Response, ctx context.Context) mercury.Response {
+func (s *server) applyResponseMiddleware(rsp mercury.Response, req mercury.Request) mercury.Response {
 	s.middlewareM.RLock()
 	mws := s.middleware
 	s.middlewareM.RUnlock()
 	for i := len(mws) - 1; i >= 0; i-- { // reverse order
 		mw := mws[i]
-		rsp = mw.ProcessServerResponse(rsp, ctx)
+		rsp = mw.ProcessServerResponse(rsp, req)
 	}
 	return rsp
 }
@@ -217,6 +216,9 @@ func (s *server) handle(trans transport.Transport, req_ tmsg.Request) {
 			if rsp_, err := ep.Handle(req); err != nil {
 				log.Debugf("[Mercury:Server] Got error from endpoint %s for request %s: %v", ep.Name, req.Id(), err)
 				rsp = ErrorResponse(req, err)
+				// @todo happy to remove this verbose logging once we have tracing... For now it will allow us to debug things
+				log.Debugf("[Mercury:Server] Full request: %+v", req.Body())
+				log.Debugf("[Mercury:Server] Full error: %+v", rsp.Body())
 			} else if rsp_ == nil {
 				rsp = req.Response(nil)
 			} else {
@@ -224,7 +226,6 @@ func (s *server) handle(trans transport.Transport, req_ tmsg.Request) {
 			}
 		}
 	}
-
 	rsp = s.applyResponseMiddleware(rsp, req)
 	if rsp != nil {
 		trans.Respond(req, rsp)
@@ -258,7 +259,11 @@ func (s *server) AddMiddleware(mw ServerMiddleware) {
 // know how to unmarshal these errors.
 func ErrorResponse(req mercury.Request, err error) mercury.Response {
 	rsp := req.Response(nil)
-	rsp.SetBody(terrors.Marshal(terrors.Wrap(err)))
+	var terr *terrors.Error
+	if err != nil {
+		terr = terrors.Wrap(err, nil).(*terrors.Error)
+	}
+	rsp.SetBody(terrors.Marshal(terr))
 	if err := tmsg.ProtoMarshaler().MarshalBody(rsp); err != nil {
 		log.Errorf("[Mercury:Server] Failed to marshal error response: %v", err)
 		return nil // Not much we can do here

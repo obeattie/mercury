@@ -7,8 +7,8 @@ import (
 	log "github.com/cihub/seelog"
 	"golang.org/x/net/context"
 
+	"github.com/mondough/mercury/marshaling"
 	tmsg "github.com/mondough/typhon/message"
-	"github.com/obeattie/mercury/marshaling"
 )
 
 const (
@@ -33,8 +33,6 @@ type Request interface {
 func responseFromRequest(req Request, body interface{}) Response {
 	rsp := NewResponse()
 	rsp.SetId(req.Id())
-	rsp.SetService(req.Service())
-	rsp.SetEndpoint(req.Endpoint())
 	if body != nil {
 		rsp.SetBody(body)
 
@@ -108,6 +106,6 @@ func NewRequest() Request {
 func FromTyphonRequest(req tmsg.Request) Request {
 	return &request{
 		Request: req,
-		ctx:     context.TODO(),
+		ctx:     context.Background(),
 	}
 }

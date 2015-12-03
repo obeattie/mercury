@@ -1,9 +1,8 @@
 package server
 
 import (
-	"github.com/obeattie/mercury"
-	"github.com/obeattie/mercury/transport"
-	"golang.org/x/net/context"
+	"github.com/mondough/mercury"
+	"github.com/mondough/mercury/transport"
 )
 
 // A Server provides Endpoint RPC functionality atop a typhon Transport.
@@ -53,5 +52,5 @@ type ServerMiddleware interface {
 	// Nil responses MUST be handled. If an error is to be returned, use `ErrorResponse`.
 	//
 	// Note that response middleware are applied in reverse order.
-	ProcessServerResponse(rsp mercury.Response, ctx context.Context) mercury.Response
+	ProcessServerResponse(rsp mercury.Response, req mercury.Request) mercury.Response
 }
